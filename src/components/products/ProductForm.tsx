@@ -40,6 +40,7 @@ export function ProductForm({
   const [duplicates, setDuplicates] = useState<Product[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [allergenInput, setAllergenInput] = useState("");
+  const [nutritionSuggested, setNutritionSuggested] = useState(false);
 
   const hasLabel = product.source === "label";
 
