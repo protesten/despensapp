@@ -1,15 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   fetchStockItems,
   deleteStockItem,
@@ -28,13 +22,46 @@ export const Route = createFileRoute("/_authenticated/despensa/stock/")({
 type LocationFilter = "all" | "pantry" | "fridge" | "freezer" | "other";
 type MovementType = "consumption" | "adjustment" | "waste" | "expiry";
 
+function ActionMenu({ item, onAction, onDelete }: {
+  item: StockItemWithProduct;
+  onAction: (type: MovementType) => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <Button variant="ghost" size="sm" onClick={() => setOpen(!open)}>⋮</Button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-md border border-border bg-popover p-1 shadow-md">
+          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("consumption"); }}>🍽️ Consumir</button>
+          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("adjustment"); }}>🔧 Ajustar</button>
+          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("waste"); }}>🗑️ Merma</button>
+          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("expiry"); }}>⏰ Expirar</button>
+          <Link to="/despensa/stock/$stockItemId/historial" params={{ stockItemId: item.id }} className="block w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => setOpen(false)}>📋 Historial</Link>
+          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent text-destructive" onClick={() => { setOpen(false); onDelete(); }}>✕ Eliminar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StockIndexPage() {
   const { user, signOut } = useAuth();
   const [items, setItems] = useState<StockItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LocationFilter>("all");
 
-  // Movement dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogItem, setDialogItem] = useState<StockItemWithProduct | null>(null);
   const [dialogType, setDialogType] = useState<MovementType>("consumption");
@@ -103,7 +130,6 @@ function StockIndexPage() {
           </Button>
         </div>
 
-        {/* Location filter */}
         <div className="flex gap-2 flex-wrap">
           {(["all", "pantry", "fridge", "freezer", "other"] as const).map((loc) => (
             <Button
@@ -175,38 +201,11 @@ function StockIndexPage() {
                                 </p>
                               )}
                             </div>
-
-                            {/* Actions dropdown */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="shrink-0">⋮</Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openMovement(item, "consumption")}>
-                                  🍽️ Consumir
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openMovement(item, "adjustment")}>
-                                  🔧 Ajustar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openMovement(item, "waste")}>
-                                  🗑️ Merma
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openMovement(item, "expiry")}>
-                                  ⏰ Expirar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link to="/despensa/stock/$stockItemId/historial" params={{ stockItemId: item.id }}>
-                                    📋 Historial
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleDelete(item.id, item.products.name)}
-                                >
-                                  ✕ Eliminar
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <ActionMenu
+                              item={item}
+                              onAction={(type) => openMovement(item, type)}
+                              onDelete={() => handleDelete(item.id, item.products.name)}
+                            />
                           </div>
                           <div className="mt-2">
                             <MacroBadges nutrition={nutrition} unit={unit} />
