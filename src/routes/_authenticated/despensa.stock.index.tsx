@@ -5,6 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   fetchStockItems,
   deleteStockItem,
   LOCATION_LABELS,
@@ -13,18 +19,25 @@ import {
   type StockItemWithProduct,
 } from "@/lib/stock";
 import { MacroBadges } from "@/components/products/NutritionDisplay";
+import { MovementDialog } from "@/components/stock/MovementDialog";
 
 export const Route = createFileRoute("/_authenticated/despensa/stock/")({
   component: StockIndexPage,
 });
 
 type LocationFilter = "all" | "pantry" | "fridge" | "freezer" | "other";
+type MovementType = "consumption" | "adjustment" | "waste" | "expiry";
 
 function StockIndexPage() {
   const { user, signOut } = useAuth();
   const [items, setItems] = useState<StockItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LocationFilter>("all");
+
+  // Movement dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogItem, setDialogItem] = useState<StockItemWithProduct | null>(null);
+  const [dialogType, setDialogType] = useState<MovementType>("consumption");
 
   const load = async () => {
     setLoading(true);
@@ -61,6 +74,12 @@ function StockIndexPage() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const openMovement = (item: StockItemWithProduct, type: MovementType) => {
+    setDialogItem(item);
+    setDialogType(type);
+    setDialogOpen(true);
   };
 
   return (
@@ -156,14 +175,38 @@ function StockIndexPage() {
                                 </p>
                               )}
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive shrink-0"
-                              onClick={() => handleDelete(item.id, item.products.name)}
-                            >
-                              ✕
-                            </Button>
+
+                            {/* Actions dropdown */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="shrink-0">⋮</Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openMovement(item, "consumption")}>
+                                  🍽️ Consumir
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openMovement(item, "adjustment")}>
+                                  🔧 Ajustar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openMovement(item, "waste")}>
+                                  🗑️ Merma
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openMovement(item, "expiry")}>
+                                  ⏰ Expirar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link to="/despensa/stock/$stockItemId/historial" params={{ stockItemId: item.id }}>
+                                    📋 Historial
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDelete(item.id, item.products.name)}
+                                >
+                                  ✕ Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                           <div className="mt-2">
                             <MacroBadges nutrition={nutrition} unit={unit} />
@@ -178,6 +221,16 @@ function StockIndexPage() {
           </div>
         )}
       </main>
+
+      {dialogItem && (
+        <MovementDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          item={dialogItem}
+          type={dialogType}
+          onSuccess={load}
+        />
+      )}
     </div>
   );
 }
