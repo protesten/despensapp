@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -451,11 +452,20 @@ function ImageUploadCard({
         reader.readAsDataURL(file);
       });
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setUploadError("Tu sesión ha expirado. Vuelve a iniciar sesión.");
+        return;
+      }
+
       const result = await uploadProductImage({
         data: {
           fileName: `product_${Date.now()}_${file.name}`,
           mimeType: file.type,
           base64Data,
+          accessToken,
         },
       });
 

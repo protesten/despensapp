@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 export interface DriveUploadResult {
   image_url: string | null;
@@ -9,9 +10,13 @@ export interface DriveUploadResult {
   error?: string;
 }
 
-/**
- * Build a JWT from the service account key JSON, exchange it for an access token.
- */
+interface UploadProductImageInput {
+  fileName: string;
+  mimeType: string;
+  base64Data: string;
+  accessToken: string;
+}
+
 async function getAccessToken(keyJson: {
   client_email: string;
   private_key: string;
@@ -32,7 +37,6 @@ async function getAccessToken(keyJson: {
 
   const unsignedToken = `${enc(header)}.${enc(claim)}`;
 
-  // Import the RSA private key
   const pemBody = keyJson.private_key
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
@@ -76,10 +80,9 @@ async function getAccessToken(keyJson: {
 }
 
 export const uploadProductImage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { fileName: string; mimeType: string; base64Data: string }) => {
-    if (!input.fileName || !input.mimeType || !input.base64Data) {
-      throw new Error("fileName, mimeType and base64Data are required");
+  .inputValidator((input: UploadProductImageInput) => {
+    if (!input.fileName || !input.mimeType || !input.base64Data || !input.accessToken) {
+      throw new Error("fileName, mimeType, base64Data and accessToken are required");
     }
     if (!input.mimeType.startsWith("image/")) {
       throw new Error("Only image files are allowed");
@@ -91,33 +94,85 @@ export const uploadProductImage = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }): Promise<DriveUploadResult> => {
     try {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabasePublishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
       const keyJsonStr = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
       const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
-      if (!keyJsonStr) {
-        console.error("GOOGLE_SERVICE_ACCOUNT_KEY is not configured");
-        return { image_url: null, image_drive_file_id: null, image_drive_folder_id: null, image_storage_provider: null, error: "Credenciales de Google Drive no configuradas" };
+      if (!supabaseUrl || !supabasePublishableKey) {
+        return {
+          image_url: null,
+          image_drive_file_id: null,
+          image_drive_folder_id: null,
+          image_storage_provider: null,
+          error: "Configuración de autenticación no disponible",
+        };
       }
+
+      const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey, {
+        auth: {
+          storage: undefined,
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+
+      const { data: authData, error: authError } = await supabase.auth.getUser(data.accessToken);
+      if (authError || !authData.user) {
+        console.error("uploadProductImage auth error:", authError?.message ?? "No user");
+        return {
+          image_url: null,
+          image_drive_file_id: null,
+          image_drive_folder_id: null,
+          image_storage_provider: null,
+          error: "Tu sesión ha expirado. Vuelve a iniciar sesión.",
+        };
+      }
+
+      if (!keyJsonStr) {
+        return {
+          image_url: null,
+          image_drive_file_id: null,
+          image_drive_folder_id: null,
+          image_storage_provider: null,
+          error: "Credenciales de Google Drive no configuradas",
+        };
+      }
+
       if (!folderId) {
-        console.error("GOOGLE_DRIVE_FOLDER_ID is not configured");
-        return { image_url: null, image_drive_file_id: null, image_drive_folder_id: null, image_storage_provider: null, error: "Carpeta de Google Drive no configurada" };
+        return {
+          image_url: null,
+          image_drive_file_id: null,
+          image_drive_folder_id: null,
+          image_storage_provider: null,
+          error: "Carpeta de Google Drive no configurada",
+        };
       }
 
       let keyJson: { client_email: string; private_key: string; token_uri: string };
       try {
         keyJson = JSON.parse(keyJsonStr);
       } catch {
-        console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY JSON");
-        return { image_url: null, image_drive_file_id: null, image_drive_folder_id: null, image_storage_provider: null, error: "Credenciales de Google Drive inválidas (JSON malformado)" };
+        return {
+          image_url: null,
+          image_drive_file_id: null,
+          image_drive_folder_id: null,
+          image_storage_provider: null,
+          error: "Credenciales de Google Drive inválidas (JSON malformado)",
+        };
       }
 
       if (!keyJson.client_email || !keyJson.private_key || !keyJson.token_uri) {
-        console.error("Service account key missing required fields");
-        return { image_url: null, image_drive_file_id: null, image_drive_folder_id: null, image_storage_provider: null, error: "Credenciales de Google Drive incompletas" };
+        return {
+          image_url: null,
+          image_drive_file_id: null,
+          image_drive_folder_id: null,
+          image_storage_provider: null,
+          error: "Credenciales de Google Drive incompletas",
+        };
       }
 
       const accessToken = await getAccessToken(keyJson);
-
       const metadata = JSON.stringify({
         name: data.fileName,
         parents: [folderId],
@@ -136,7 +191,7 @@ export const uploadProductImage = createServerFn({ method: "POST" })
       ].join("");
 
       const uploadRes = await fetch(
-        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,webContentLink",
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
         {
           method: "POST",
           headers: {
@@ -150,12 +205,17 @@ export const uploadProductImage = createServerFn({ method: "POST" })
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();
         console.error(`Google Drive upload failed [${uploadRes.status}]: ${errText}`);
-        return { image_url: null, image_drive_file_id: null, image_drive_folder_id: null, image_storage_provider: null, error: `Error al subir a Google Drive (${uploadRes.status})` };
+        return {
+          image_url: null,
+          image_drive_file_id: null,
+          image_drive_folder_id: null,
+          image_storage_provider: null,
+          error: `Error al subir a Google Drive (${uploadRes.status})`,
+        };
       }
 
       const fileData = (await uploadRes.json()) as { id: string };
 
-      // Make file publicly readable
       const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
         method: "POST",
         headers: {
@@ -169,10 +229,8 @@ export const uploadProductImage = createServerFn({ method: "POST" })
         console.warn(`Failed to set permissions: ${permRes.status}`);
       }
 
-      const imageUrl = `https://drive.google.com/thumbnail?id=${fileData.id}&sz=w800`;
-
       return {
-        image_url: imageUrl,
+        image_url: `https://drive.google.com/thumbnail?id=${fileData.id}&sz=w800`,
         image_drive_file_id: fileData.id,
         image_drive_folder_id: folderId,
         image_storage_provider: "google_drive",
@@ -180,6 +238,12 @@ export const uploadProductImage = createServerFn({ method: "POST" })
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido al subir imagen";
       console.error("uploadProductImage error:", msg);
-      return { image_url: null, image_drive_file_id: null, image_drive_folder_id: null, image_storage_provider: null, error: msg };
+      return {
+        image_url: null,
+        image_drive_file_id: null,
+        image_drive_folder_id: null,
+        image_storage_provider: null,
+        error: msg,
+      };
     }
   });
