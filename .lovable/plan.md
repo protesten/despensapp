@@ -1,34 +1,35 @@
 
-Diagnóstico: el problema ya no parece ser la ausencia de `<Outlet />`. La ruta `/despensa/productos/nuevo` existe y el layout de `despensa` ya está preparado. Lo que sí veo es una navegación inestable: en `src/routes/auth.tsx` se llama a `navigate()` durante el render cuando el usuario ya está autenticado, y eso ya está generando el warning de React que aparece en consola. Ese patrón puede dejar el router en un estado raro y hacer que luego los clics de navegación no terminen de abrir la pantalla esperada. Además, los accesos a “Nuevo” y “Crear primer producto” están hechos con navegación imperativa, cuando aquí conviene usar enlaces reales.
 
-Plan de corrección:
+## Problem
 
-1. Endurecer la navegación de autenticación
-- Corregir `src/routes/auth.tsx` para que no navegue durante el render.
-- Mover esa redirección a `useEffect` o usar `<Navigate />`.
-- Con esto se elimina el warning de React y se estabilizan las transiciones del router.
+The stock page shows "Sin datos nutricionales" even though the products have nutrition data. The issue is in how `product_nutrition` is extracted from the nested Supabase query response.
 
-2. Cambiar los accesos a crear producto a navegación declarativa
-- En `src/routes/_authenticated/despensa.index.tsx`, sustituir los botones que hacen `navigate({ to: "/despensa/productos/nuevo" })` por `Link` con `Button asChild`.
-- Haré lo mismo en cualquier otro acceso equivalente.
-- Así el botón tendrá `href` real y la navegación será más robusta en móvil y preview.
+### Root cause
 
-3. Mantener la estructura de rutas limpia
-- Revisar que `src/routes/_authenticated/despensa.tsx` siga siendo solo layout con `<Outlet />`.
-- Mantener la lista en `src/routes/_authenticated/despensa.index.tsx`.
-- No tocaré base de datos ni lógica de productos para este arreglo.
+In `despensa.stock.index.tsx` (line 202-204), the code assumes `product_nutrition` is always an array:
 
-4. Verificación funcional
-- Comprobar estos flujos:
-  - entrar en `/despensa`
-  - pulsar “+ Nuevo”
-  - pulsar “Crear primer producto”
-  - abrir directamente `/despensa/productos/nuevo`
-  - volver a `/despensa`
-- Si todo queda bien, el formulario debe abrirse correctamente y ya podrás crear alimentos.
+```typescript
+const nutrition = Array.isArray(item.products.product_nutrition)
+  ? item.products.product_nutrition[0] ?? null
+  : null;
+```
 
-Archivos a tocar:
-- `src/routes/auth.tsx`
-- `src/routes/_authenticated/despensa.index.tsx`
+When Supabase returns `product_nutrition` through a double-nested embed (`stock_items → products → product_nutrition`), it may return a single object instead of an array (depending on PostgREST's relationship detection). If it's an object, `Array.isArray` is `false` and the code falls through to `null`.
 
-No voy a ampliar alcance: solo arreglaré la navegación para que puedas abrir el formulario de creación de alimentos.
+### Fix
+
+**1. Update `StockItemWithProduct` type** in `src/lib/stock.ts` to accept both formats:
+
+```typescript
+product_nutrition: ProductNutrition[] | ProductNutrition | null;
+```
+
+**2. Update the nutrition extraction** in `src/routes/_authenticated/despensa.stock.index.tsx` to handle all shapes:
+
+```typescript
+const raw = item.products.product_nutrition;
+const nutrition = Array.isArray(raw) ? (raw[0] ?? null) : (raw ?? null);
+```
+
+This two-line change ensures nutrition displays correctly regardless of whether Supabase returns an array, object, or null.
+
