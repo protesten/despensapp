@@ -5,6 +5,112 @@ const searchInputSchema = z.object({
   query: z.string().min(1).max(200),
 });
 
+/** Spanish → English dictionary for common foods */
+const ES_EN_DICT: Record<string, string> = {
+  naranja: "orange",
+  arroz: "rice",
+  huevo: "egg",
+  huevos: "eggs",
+  papa: "potato",
+  papas: "potatoes",
+  patata: "potato",
+  patatas: "potatoes",
+  "plátano": "banana",
+  "plátanos": "bananas",
+  banana: "banana",
+  lentejas: "lentils",
+  garbanzos: "chickpeas",
+  pollo: "chicken",
+  manzana: "apple",
+  manzanas: "apples",
+  leche: "milk",
+  tomate: "tomato",
+  tomates: "tomatoes",
+  cebolla: "onion",
+  ajo: "garlic",
+  zanahoria: "carrot",
+  "pimiento": "pepper",
+  espinaca: "spinach",
+  espinacas: "spinach",
+  "brócoli": "broccoli",
+  "brocoli": "broccoli",
+  "atún": "tuna",
+  "salmón": "salmon",
+  pan: "bread",
+  queso: "cheese",
+  yogur: "yogurt",
+  avena: "oats",
+  pasta: "pasta",
+  aceite: "oil",
+  "aceite de oliva": "olive oil",
+  mantequilla: "butter",
+  cerdo: "pork",
+  ternera: "beef",
+  res: "beef",
+  pavo: "turkey",
+  "jamón": "ham",
+  "maíz": "corn",
+  frijoles: "beans",
+  "judías": "beans",
+  aguacate: "avocado",
+  "limón": "lemon",
+  lima: "lime",
+  fresa: "strawberry",
+  fresas: "strawberries",
+  uva: "grape",
+  uvas: "grapes",
+  pera: "pear",
+  "melocotón": "peach",
+  piña: "pineapple",
+  "sandía": "watermelon",
+  "melón": "melon",
+  almendra: "almond",
+  almendras: "almonds",
+  nuez: "walnut",
+  nueces: "walnuts",
+  "cacahuete": "peanut",
+  "cacahuetes": "peanuts",
+  "maní": "peanut",
+  pepino: "cucumber",
+  calabaza: "squash",
+  "calabacín": "zucchini",
+  berenjena: "eggplant",
+  lechuga: "lettuce",
+  apio: "celery",
+  "champiñón": "mushroom",
+  "champiñones": "mushrooms",
+  sardina: "sardine",
+  sardinas: "sardines",
+  "camarón": "shrimp",
+  camarones: "shrimp",
+  "harina": "flour",
+  "azúcar": "sugar",
+  sal: "salt",
+  "arroz integral": "brown rice",
+  "pechuga de pollo": "chicken breast",
+  "muslo de pollo": "chicken thigh",
+  "leche entera": "whole milk",
+  "leche desnatada": "skim milk",
+};
+
+function translateQuery(query: string): { translated: string; wasTranslated: boolean } {
+  const lower = query.trim().toLowerCase();
+  // Try full phrase first, then individual words
+  if (ES_EN_DICT[lower]) {
+    return { translated: ES_EN_DICT[lower], wasTranslated: true };
+  }
+  // Try translating word by word
+  const words = lower.split(/\s+/);
+  if (words.length > 1) {
+    const mapped = words.map((w) => ES_EN_DICT[w] ?? w);
+    const anyChanged = mapped.some((m, i) => m !== words[i]);
+    if (anyChanged) {
+      return { translated: mapped.join(" "), wasTranslated: true };
+    }
+  }
+  return { translated: query.trim(), wasTranslated: false };
+}
+
 export interface USDAFoodResult {
   fdcId: number;
   description: string;
