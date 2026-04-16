@@ -17,6 +17,7 @@ import {
   searchDuplicates,
 } from "@/lib/products";
 import { NutritionLookup } from "@/components/products/NutritionLookup";
+import { ProductLookupOFF } from "@/components/products/ProductLookupOFF";
 
 interface ProductFormProps {
   initialProduct?: ProductFormData;
@@ -41,6 +42,7 @@ export function ProductForm({
   const [tagInput, setTagInput] = useState("");
   const [allergenInput, setAllergenInput] = useState("");
   const [nutritionSuggested, setNutritionSuggested] = useState(false);
+  const [offApplied, setOffApplied] = useState(false);
 
   const hasLabel = product.source === "label";
 
@@ -126,6 +128,15 @@ export function ProductForm({
     setNutrition((prev) => ({ ...prev, ...nutritionData }));
     setProduct((prev) => ({ ...prev, ...meta }));
     setNutritionSuggested(true);
+  };
+
+  const handleOFFApply = (
+    productData: Partial<ProductFormData>,
+    nutritionData: Partial<NutritionFormData>,
+  ) => {
+    setProduct((prev) => ({ ...prev, ...productData }));
+    setNutrition((prev) => ({ ...prev, ...nutritionData }));
+    setOffApplied(true);
   };
 
   return (
