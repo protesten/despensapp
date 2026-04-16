@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/use-auth";
 import {
   fetchStockItems,
   deleteStockItem,
@@ -14,6 +13,9 @@ import {
 } from "@/lib/stock";
 import { MacroBadges } from "@/components/products/NutritionDisplay";
 import { MovementDialog } from "@/components/stock/MovementDialog";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { AppNav } from "@/components/layout/AppNav";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/stock/")({
   component: StockIndexPage,
@@ -28,41 +30,60 @@ function ActionMenu({ item, onAction, onDelete }: {
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
 
   return (
-    <div className="relative shrink-0" ref={ref}>
-      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(!open)}>⋮</Button>
+    <>
+      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setOpen(true)}>⋮</Button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-xs rounded-t-xl sm:rounded-xl border border-border bg-popover p-2 shadow-xl mb-0 sm:mb-0" onClick={(e) => e.stopPropagation()}>
-            <p className="text-xs text-muted-foreground px-3 py-1.5 font-medium">{item.products.name}</p>
-            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("consumption"); }}>🍽️ Consumir</button>
-            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("adjustment"); }}>🔧 Ajustar</button>
-            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("waste"); }}>🗑️ Merma</button>
-            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("expiry"); }}>⏰ Expirar</button>
-            <Link to="/despensa/stock/$stockItemId/historial" params={{ stockItemId: item.id }} className="block w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => setOpen(false)}>📋 Historial</Link>
-            <div className="border-t border-border mt-1 pt-1">
-              <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent text-destructive flex items-center gap-2" onClick={() => { setOpen(false); onDelete(); }}>✕ Eliminar</button>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
+          <div
+            className="w-full max-w-sm rounded-t-2xl sm:rounded-xl border border-border bg-popover p-3 shadow-xl animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-muted mx-auto mb-3 sm:hidden" />
+            <p className="text-sm font-medium px-2 pb-2 truncate">{item.products.name}</p>
+            <p className="text-xs text-muted-foreground px-2 pb-3">
+              {item.quantity} {item.unit} · {STATUS_LABELS[item.status ?? "available"]}
+            </p>
+            <div className="space-y-0.5">
+              <MenuButton icon="🍽️" label="Consumir" onClick={() => { setOpen(false); onAction("consumption"); }} />
+              <MenuButton icon="🔧" label="Ajustar" onClick={() => { setOpen(false); onAction("adjustment"); }} />
+              <MenuButton icon="🗑️" label="Merma" onClick={() => { setOpen(false); onAction("waste"); }} />
+              <MenuButton icon="⏰" label="Expirar" onClick={() => { setOpen(false); onAction("expiry"); }} />
+              <Link
+                to="/despensa/stock/$stockItemId/historial"
+                params={{ stockItemId: item.id }}
+                className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent"
+                onClick={() => setOpen(false)}
+              >
+                📋 Historial
+              </Link>
             </div>
+            <div className="border-t border-border mt-2 pt-2">
+              <MenuButton icon="✕" label="Eliminar" onClick={() => { setOpen(false); onDelete(); }} destructive />
+            </div>
+            <Button variant="ghost" className="w-full mt-2 sm:hidden" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
           </div>
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+function MenuButton({ icon, label, onClick, destructive }: { icon: string; label: string; onClick: () => void; destructive?: boolean }) {
+  return (
+    <button
+      className={`flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent ${destructive ? "text-destructive" : ""}`}
+      onClick={onClick}
+    >
+      {icon} {label}
+    </button>
   );
 }
 
 function StockIndexPage() {
-  const { user, signOut } = useAuth();
   const [items, setItems] = useState<StockItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LocationFilter>("all");
@@ -77,6 +98,7 @@ function StockIndexPage() {
       setItems(await fetchStockItems());
     } catch (e) {
       console.error(e);
+      toast.error("Error al cargar el stock");
     } finally {
       setLoading(false);
     }
@@ -103,8 +125,10 @@ function StockIndexPage() {
     try {
       await deleteStockItem(id);
       setItems((prev) => prev.filter((i) => i.id !== id));
+      toast.success(`Stock de "${name}" eliminado`);
     } catch (e) {
       console.error(e);
+      toast.error("Error al eliminar stock");
     }
   };
 
@@ -114,33 +138,38 @@ function StockIndexPage() {
     setDialogOpen(true);
   };
 
+  const expiringCount = items.filter((i) => {
+    if (!i.expiration_date) return false;
+    const diff = new Date(i.expiration_date).getTime() - Date.now();
+    return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
+  }).length;
+
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 bg-background z-10">
-        <div className="flex items-center gap-3">
-          <Link to="/despensa" className="text-sm text-muted-foreground hover:text-foreground">←</Link>
-          <h1 className="text-lg font-bold">📦 Stock</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{user?.email}</span>
-          <Button variant="ghost" size="sm" onClick={signOut}>Salir</Button>
-        </div>
-      </header>
+      <AppHeader showUser />
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
+        <AppNav />
+
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Inventario</h2>
+          <div>
+            <h2 className="text-xl font-bold">Inventario ({filtered.length})</h2>
+            {expiringCount > 0 && (
+              <p className="text-xs text-orange-500 font-medium">⚠️ {expiringCount} por caducar en 7 días</p>
+            )}
+          </div>
           <Button size="sm" asChild>
-            <Link to="/despensa/stock/nuevo">+ Añadir stock</Link>
+            <Link to="/despensa/stock/nuevo">+ Añadir</Link>
           </Button>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {(["all", "pantry", "fridge", "freezer", "other"] as const).map((loc) => (
             <Button
               key={loc}
               variant={filter === loc ? "default" : "outline"}
               size="sm"
+              className="text-xs"
               onClick={() => setFilter(loc)}
             >
               {loc === "all" ? "Todas" : LOCATION_LABELS[loc]}
@@ -175,20 +204,29 @@ function StockIndexPage() {
                       : null;
                     const unit = item.unit === "ml" || item.unit === "l" ? "ml" : "g";
 
+                    const isExpiringSoon = item.expiration_date && (() => {
+                      const diff = new Date(item.expiration_date!).getTime() - Date.now();
+                      return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
+                    })();
+                    const isExpired = item.expiration_date && new Date(item.expiration_date).getTime() < Date.now();
+
                     return (
                       <Card key={item.id} className="overflow-hidden">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium">{item.products.name}</p>
-                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <p className="font-medium truncate">{item.products.name}</p>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 {item.products.brand && (
-                                  <span className="text-sm text-muted-foreground">{item.products.brand}</span>
+                                  <span className="text-xs text-muted-foreground">{item.products.brand}</span>
                                 )}
                                 <Badge variant="outline" className="text-xs">
                                   {item.quantity} {item.unit}
                                 </Badge>
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge
+                                  variant={item.status === "low" ? "destructive" : "secondary"}
+                                  className="text-xs"
+                                >
                                   {STATUS_LABELS[item.status ?? "available"]}
                                 </Badge>
                                 <Badge variant="secondary" className="text-xs">
@@ -196,13 +234,14 @@ function StockIndexPage() {
                                 </Badge>
                               </div>
                               {item.expiration_date && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Caduca: {item.expiration_date}
+                                <p className={`text-xs mt-1 ${isExpired ? "text-destructive font-medium" : isExpiringSoon ? "text-orange-500 font-medium" : "text-muted-foreground"}`}>
+                                  {isExpired ? "⚠️ Caducado" : isExpiringSoon ? "⚠️ Caduca pronto:" : "Caduca:"}{" "}
+                                  {new Date(item.expiration_date).toLocaleDateString("es-ES")}
                                 </p>
                               )}
                               {item.unit_cost != null && (
                                 <p className="text-xs text-muted-foreground">
-                                  Coste: {item.unit_cost} €
+                                  Coste: {item.unit_cost.toFixed(2)} €
                                 </p>
                               )}
                             </div>

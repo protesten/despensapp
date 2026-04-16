@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { fetchProduct, deleteProduct, type ProductWithNutrition, SOURCE_OPTIONS } from "@/lib/products";
 import { MacroBadges, NutritionTable } from "@/components/products/NutritionDisplay";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/productos/$productId")({
   component: ProductDetailPage,
@@ -20,7 +21,10 @@ function ProductDetailPage() {
   useEffect(() => {
     fetchProduct(productId)
       .then(setProduct)
-      .catch(() => navigate({ to: "/despensa" }))
+      .catch(() => {
+        toast.error("Producto no encontrado");
+        navigate({ to: "/despensa" });
+      })
       .finally(() => setLoading(false));
   }, [productId, navigate]);
 
@@ -41,31 +45,31 @@ function ProductDetailPage() {
   const handleDelete = async () => {
     if (!confirm(`¿Eliminar "${p.name}"?`)) return;
     await deleteProduct(p.id);
+    toast.success(`"${p.name}" eliminado`);
     navigate({ to: "/despensa" });
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 py-3 sticky top-0 bg-background z-10 flex items-center justify-between">
-        <button onClick={() => navigate({ to: "/despensa" })} className="text-sm text-muted-foreground hover:text-foreground">
+      <header className="border-b border-border px-4 py-3 sticky top-0 bg-background z-10 flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" className="shrink-0 px-2" onClick={() => navigate({ to: "/despensa" })}>
           ← Productos
-        </button>
-        <div className="flex gap-2">
+        </Button>
+        <div className="flex gap-2 shrink-0">
           <Button
             size="sm"
             variant="outline"
             onClick={() => navigate({ to: "/despensa/productos/$productId/editar", params: { productId: p.id } })}
           >
-            Editar
+            ✏️ Editar
           </Button>
           <Button size="sm" variant="destructive" onClick={handleDelete}>Eliminar</Button>
         </div>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
-        {/* Header */}
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold">{p.name}</h1>
             {p.source === "label" ? (
               <Badge variant="outline">🏷️</Badge>
@@ -77,7 +81,6 @@ function ProductDetailPage() {
           {p.barcode && <p className="text-xs text-muted-foreground mt-0.5">EAN: {p.barcode}</p>}
         </div>
 
-        {/* Macro badges - prominent */}
         <Card>
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-medium">
@@ -87,7 +90,6 @@ function ProductDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Full nutrition table */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Tabla nutricional completa</CardTitle>
@@ -97,7 +99,6 @@ function ProductDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Product details */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Detalles</CardTitle>
@@ -117,7 +118,6 @@ function ProductDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Tags & allergens */}
         {((p.suitability_tags?.length ?? 0) > 0 || (p.allergens?.length ?? 0) > 0) && (
           <Card>
             <CardContent className="py-4 space-y-3">
@@ -141,7 +141,6 @@ function ProductDetailPage() {
           </Card>
         )}
 
-        {/* Ingredients */}
         {p.ingredients_text && (
           <Card>
             <CardHeader className="pb-2">
@@ -153,7 +152,6 @@ function ProductDetailPage() {
           </Card>
         )}
 
-        {/* Traceability */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Trazabilidad</CardTitle>
@@ -172,9 +170,9 @@ function ProductDetailPage() {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between">
+    <div className="flex justify-between gap-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
+      <span className="font-medium text-right">{value}</span>
     </div>
   );
 }

@@ -1,48 +1,59 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/use-auth";
+import { Badge } from "@/components/ui/badge";
 import {
   exportProducts,
   exportStock,
   exportMovements,
   exportConsolidated,
 } from "@/lib/export.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { AppNav } from "@/components/layout/AppNav";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/exportar")({
   component: ExportPage,
 });
 
 function ExportPage() {
-  const { user } = useAuth();
   const [result, setResult] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [label, setLabel] = useState("");
-
-  async function getHeaders() {
-    const { data } = await supabase.auth.getSession();
-    return {
-      Authorization: `Bearer ${data.session?.access_token}`,
-    };
-  }
+  const [itemCount, setItemCount] = useState<number | null>(null);
 
   const doExport = async (fn: () => Promise<any>, name: string) => {
     setLoading(true);
     setLabel(name);
+    setItemCount(null);
     try {
       const data = await fn();
+      // Extract count from known shapes
+      const count =
+        data.item_count ??
+        data.products?.length ??
+        data.stock?.length ??
+        data.movements?.length ??
+        null;
+      setItemCount(count);
       setResult(JSON.stringify(data, null, 2));
+      toast.success(`${name} exportado correctamente`);
     } catch (e: any) {
       setResult(`Error: ${e.message}`);
+      toast.error(`Error al exportar: ${e.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(result);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(result);
+      toast.success("JSON copiado al portapapeles");
+    } catch {
+      toast.error("No se pudo copiar");
+    }
   };
 
   const handleDownload = () => {
@@ -53,56 +64,56 @@ function ExportPage() {
     a.download = `despensapp-${label.toLowerCase().replace(/\s/g, "-")}-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("Archivo descargado");
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 bg-background z-10">
-        <h1 className="text-lg font-bold">🥫 DespensApp</h1>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/despensa">← Volver</Link>
-        </Button>
-      </header>
+      <AppHeader showUser />
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
-        <div className="flex gap-2 border-b border-border pb-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/despensa/exportar">📤 Exportar</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/despensa/importar">📥 Importar</Link>
-          </Button>
-        </div>
+        <AppNav />
 
         <h2 className="text-xl font-bold">Exportar datos</h2>
+        <p className="text-sm text-muted-foreground">
+          Exporta tus datos en JSON para usar con herramientas de IA o como respaldo.
+        </p>
 
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
+            className="h-auto py-3 flex flex-col gap-1"
             onClick={() => doExport(exportProducts, "Productos")}
             disabled={loading}
           >
-            📦 Productos
+            <span className="text-lg">📦</span>
+            <span className="text-xs">Productos</span>
           </Button>
           <Button
             variant="outline"
+            className="h-auto py-3 flex flex-col gap-1"
             onClick={() => doExport(exportStock, "Stock")}
             disabled={loading}
           >
-            🗄️ Stock
+            <span className="text-lg">🗄️</span>
+            <span className="text-xs">Stock</span>
           </Button>
           <Button
             variant="outline"
+            className="h-auto py-3 flex flex-col gap-1"
             onClick={() => doExport(exportMovements, "Movimientos")}
             disabled={loading}
           >
-            📊 Movimientos
+            <span className="text-lg">📊</span>
+            <span className="text-xs">Movimientos</span>
           </Button>
           <Button
+            className="h-auto py-3 flex flex-col gap-1"
             onClick={() => doExport(exportConsolidated, "Consolidado IA")}
             disabled={loading}
           >
-            🤖 Consolidado IA
+            <span className="text-lg">🤖</span>
+            <span className="text-xs">Consolidado IA</span>
           </Button>
         </div>
 
@@ -113,8 +124,13 @@ function ExportPage() {
         {result && !loading && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center justify-between">
-                <span>{label}</span>
+              <CardTitle className="text-sm flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span>{label}</span>
+                  {itemCount !== null && (
+                    <Badge variant="secondary" className="text-xs">{itemCount} items</Badge>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={handleCopy}>
                     📋 Copiar
