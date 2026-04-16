@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,7 @@ function AuthPage() {
   const navigate = useNavigate();
 
   if (isAuthenticated) {
-    navigate({ to: "/despensa" });
-    return null;
+    return <Navigate to="/despensa" />;
   }
 
   const handleSubmit = async (e: FormEvent) => {
