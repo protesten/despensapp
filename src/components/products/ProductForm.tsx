@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/products";
 import { NutritionLookup } from "@/components/products/NutritionLookup";
 import { ProductLookupOFF } from "@/components/products/ProductLookupOFF";
+import { uploadProductImage } from "@/lib/drive-upload.functions";
 
 interface ProductFormProps {
   initialProduct?: ProductFormData;
