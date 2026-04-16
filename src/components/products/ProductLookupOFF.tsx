@@ -128,21 +128,39 @@ export function ProductLookupOFF({ initialQuery, onApply }: ProductLookupOFFProp
         </TabsList>
       </Tabs>
 
-      <div className="flex gap-2">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={searchTab === "barcode" ? "Código de barras (EAN-13)" : "Buscar producto (ej: ColaCao, Hacendado leche)"}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
+      {scanning && (
+        <BarcodeScanner
+          onDetected={handleBarcodeScanned}
+          onClose={() => { setScanning(false); setSearchTab("text"); }}
         />
-        <Button type="button" variant="secondary" onClick={handleSearch} disabled={loading || !query.trim()} className="shrink-0">
-          {loading ? "…" : "Buscar"}
-        </Button>
-      </div>
+      )}
 
-      <p className="text-xs text-muted-foreground">
-        Busca productos envasados en Open Food Facts. Puedes usar nombre, marca o código de barras.
-      </p>
+      {!scanning && (
+        <>
+          <div className="flex gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchTab === "barcode" ? "Código de barras (EAN-13)" : "Buscar producto (ej: ColaCao, Hacendado leche)"}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
+            />
+            <Button type="button" variant="secondary" onClick={handleSearch} disabled={loading || !query.trim()} className="shrink-0">
+              {loading ? "…" : "Buscar"}
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Busca productos envasados en Open Food Facts. Puedes usar nombre, marca o código de barras.
+          </p>
+        </>
+      )}
+
+      {scanFeedback && (
+        <div className="flex items-center gap-2 rounded-md bg-accent/50 px-3 py-2 text-xs text-accent-foreground">
+          <span>📷</span>
+          <span>{scanFeedback}</span>
+        </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
