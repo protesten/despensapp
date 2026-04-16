@@ -19,6 +19,7 @@ import { Route as AuthenticatedDespensaStockIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedDespensaStockNuevoRouteImport } from './routes/_authenticated/despensa.stock.nuevo'
 import { Route as AuthenticatedDespensaProductosNuevoRouteImport } from './routes/_authenticated/despensa.productos.nuevo'
 import { Route as AuthenticatedDespensaProductosProductIdRouteImport } from './routes/_authenticated/despensa.productos.$productId'
+import { Route as AuthenticatedDespensaStockStockItemIdHistorialRouteImport } from './routes/_authenticated/despensa.stock.$stockItemId.historial'
 import { Route as AuthenticatedDespensaProductosProductIdEditarRouteImport } from './routes/_authenticated/despensa.productos.$productId.editar'
 
 const AuthRoute = AuthRouteImport.update({
@@ -76,6 +77,12 @@ const AuthenticatedDespensaProductosProductIdRoute =
     path: '/productos/$productId',
     getParentRoute: () => AuthenticatedDespensaRoute,
   } as any)
+const AuthenticatedDespensaStockStockItemIdHistorialRoute =
+  AuthenticatedDespensaStockStockItemIdHistorialRouteImport.update({
+    id: '/$stockItemId/historial',
+    path: '/$stockItemId/historial',
+    getParentRoute: () => AuthenticatedDespensaStockRoute,
+  } as any)
 const AuthenticatedDespensaProductosProductIdEditarRoute =
   AuthenticatedDespensaProductosProductIdEditarRouteImport.update({
     id: '/editar',
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/despensa/stock/nuevo': typeof AuthenticatedDespensaStockNuevoRoute
   '/despensa/stock/': typeof AuthenticatedDespensaStockIndexRoute
   '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
+  '/despensa/stock/$stockItemId/historial': typeof AuthenticatedDespensaStockStockItemIdHistorialRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -104,6 +112,7 @@ export interface FileRoutesByTo {
   '/despensa/stock/nuevo': typeof AuthenticatedDespensaStockNuevoRoute
   '/despensa/stock': typeof AuthenticatedDespensaStockIndexRoute
   '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
+  '/despensa/stock/$stockItemId/historial': typeof AuthenticatedDespensaStockStockItemIdHistorialRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated/despensa/stock/nuevo': typeof AuthenticatedDespensaStockNuevoRoute
   '/_authenticated/despensa/stock/': typeof AuthenticatedDespensaStockIndexRoute
   '/_authenticated/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
+  '/_authenticated/despensa/stock/$stockItemId/historial': typeof AuthenticatedDespensaStockStockItemIdHistorialRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/despensa/stock/nuevo'
     | '/despensa/stock/'
     | '/despensa/productos/$productId/editar'
+    | '/despensa/stock/$stockItemId/historial'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/despensa/stock/nuevo'
     | '/despensa/stock'
     | '/despensa/productos/$productId/editar'
+    | '/despensa/stock/$stockItemId/historial'
   id:
     | '__root__'
     | '/'
@@ -155,6 +167,7 @@ export interface FileRouteTypes {
     | '/_authenticated/despensa/stock/nuevo'
     | '/_authenticated/despensa/stock/'
     | '/_authenticated/despensa/productos/$productId/editar'
+    | '/_authenticated/despensa/stock/$stockItemId/historial'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDespensaProductosProductIdRouteImport
       parentRoute: typeof AuthenticatedDespensaRoute
     }
+    '/_authenticated/despensa/stock/$stockItemId/historial': {
+      id: '/_authenticated/despensa/stock/$stockItemId/historial'
+      path: '/$stockItemId/historial'
+      fullPath: '/despensa/stock/$stockItemId/historial'
+      preLoaderRoute: typeof AuthenticatedDespensaStockStockItemIdHistorialRouteImport
+      parentRoute: typeof AuthenticatedDespensaStockRoute
+    }
     '/_authenticated/despensa/productos/$productId/editar': {
       id: '/_authenticated/despensa/productos/$productId/editar'
       path: '/editar'
@@ -248,12 +268,15 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedDespensaStockRouteChildren {
   AuthenticatedDespensaStockNuevoRoute: typeof AuthenticatedDespensaStockNuevoRoute
   AuthenticatedDespensaStockIndexRoute: typeof AuthenticatedDespensaStockIndexRoute
+  AuthenticatedDespensaStockStockItemIdHistorialRoute: typeof AuthenticatedDespensaStockStockItemIdHistorialRoute
 }
 
 const AuthenticatedDespensaStockRouteChildren: AuthenticatedDespensaStockRouteChildren =
   {
     AuthenticatedDespensaStockNuevoRoute: AuthenticatedDespensaStockNuevoRoute,
     AuthenticatedDespensaStockIndexRoute: AuthenticatedDespensaStockIndexRoute,
+    AuthenticatedDespensaStockStockItemIdHistorialRoute:
+      AuthenticatedDespensaStockStockItemIdHistorialRoute,
   }
 
 const AuthenticatedDespensaStockRouteWithChildren =
@@ -317,3 +340,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
