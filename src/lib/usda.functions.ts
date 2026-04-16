@@ -155,7 +155,7 @@ const ES_EN_DICT: Record<string, string> = {
   trucha: "trout",
   anchoa: "anchovy", anchoas: "anchovy", boqueron: "anchovy",
   caballa: "mackerel",
-  pez espada: "swordfish",
+  "pez espada": "swordfish",
   camaron: "shrimp", camarones: "shrimp", gamba: "shrimp", gambas: "shrimp",
   langostino: "prawn", langostinos: "prawn",
   calamar: "squid", calamares: "squid",
