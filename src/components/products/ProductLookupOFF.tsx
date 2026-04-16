@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { searchOFFProducts, type OFFSuggestion } from "@/lib/openfoodfacts.functions";
 import type { NutritionFormData, ProductFormData } from "@/lib/products";
+import { BarcodeScanner } from "./BarcodeScanner";
 
 interface ProductLookupOFFProps {
   initialQuery: string;
@@ -29,7 +30,9 @@ export function ProductLookupOFF({ initialQuery, onApply }: ProductLookupOFFProp
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTab, setSearchTab] = useState<"text" | "barcode">("text");
+  const [searchTab, setSearchTab] = useState<"text" | "barcode" | "scan">("text");
+  const [scanning, setScanning] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<string | null>(null);
 
   const handleSearch = async () => {
     const q = query.trim();
