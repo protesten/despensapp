@@ -14,6 +14,9 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDespensaRouteImport } from './routes/_authenticated/despensa'
 import { Route as AuthenticatedDespensaIndexRouteImport } from './routes/_authenticated/despensa.index'
+import { Route as AuthenticatedDespensaStockRouteImport } from './routes/_authenticated/despensa.stock'
+import { Route as AuthenticatedDespensaStockIndexRouteImport } from './routes/_authenticated/despensa.stock.index'
+import { Route as AuthenticatedDespensaStockNuevoRouteImport } from './routes/_authenticated/despensa.stock.nuevo'
 import { Route as AuthenticatedDespensaProductosNuevoRouteImport } from './routes/_authenticated/despensa.productos.nuevo'
 import { Route as AuthenticatedDespensaProductosProductIdRouteImport } from './routes/_authenticated/despensa.productos.$productId'
 import { Route as AuthenticatedDespensaProductosProductIdEditarRouteImport } from './routes/_authenticated/despensa.productos.$productId.editar'
@@ -43,6 +46,24 @@ const AuthenticatedDespensaIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDespensaRoute,
   } as any)
+const AuthenticatedDespensaStockRoute =
+  AuthenticatedDespensaStockRouteImport.update({
+    id: '/stock',
+    path: '/stock',
+    getParentRoute: () => AuthenticatedDespensaRoute,
+  } as any)
+const AuthenticatedDespensaStockIndexRoute =
+  AuthenticatedDespensaStockIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDespensaStockRoute,
+  } as any)
+const AuthenticatedDespensaStockNuevoRoute =
+  AuthenticatedDespensaStockNuevoRouteImport.update({
+    id: '/nuevo',
+    path: '/nuevo',
+    getParentRoute: () => AuthenticatedDespensaStockRoute,
+  } as any)
 const AuthenticatedDespensaProductosNuevoRoute =
   AuthenticatedDespensaProductosNuevoRouteImport.update({
     id: '/productos/nuevo',
@@ -66,9 +87,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/despensa/stock': typeof AuthenticatedDespensaStockRouteWithChildren
   '/despensa/': typeof AuthenticatedDespensaIndexRoute
   '/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   '/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
+  '/despensa/stock/nuevo': typeof AuthenticatedDespensaStockNuevoRoute
+  '/despensa/stock/': typeof AuthenticatedDespensaStockIndexRoute
   '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +101,8 @@ export interface FileRoutesByTo {
   '/despensa': typeof AuthenticatedDespensaIndexRoute
   '/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   '/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
+  '/despensa/stock/nuevo': typeof AuthenticatedDespensaStockNuevoRoute
+  '/despensa/stock': typeof AuthenticatedDespensaStockIndexRoute
   '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
 }
 export interface FileRoutesById {
@@ -85,9 +111,12 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/_authenticated/despensa/stock': typeof AuthenticatedDespensaStockRouteWithChildren
   '/_authenticated/despensa/': typeof AuthenticatedDespensaIndexRoute
   '/_authenticated/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   '/_authenticated/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
+  '/_authenticated/despensa/stock/nuevo': typeof AuthenticatedDespensaStockNuevoRoute
+  '/_authenticated/despensa/stock/': typeof AuthenticatedDespensaStockIndexRoute
   '/_authenticated/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
 }
 export interface FileRouteTypes {
@@ -96,9 +125,12 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/despensa'
+    | '/despensa/stock'
     | '/despensa/'
     | '/despensa/productos/$productId'
     | '/despensa/productos/nuevo'
+    | '/despensa/stock/nuevo'
+    | '/despensa/stock/'
     | '/despensa/productos/$productId/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -107,6 +139,8 @@ export interface FileRouteTypes {
     | '/despensa'
     | '/despensa/productos/$productId'
     | '/despensa/productos/nuevo'
+    | '/despensa/stock/nuevo'
+    | '/despensa/stock'
     | '/despensa/productos/$productId/editar'
   id:
     | '__root__'
@@ -114,9 +148,12 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/despensa'
+    | '/_authenticated/despensa/stock'
     | '/_authenticated/despensa/'
     | '/_authenticated/despensa/productos/$productId'
     | '/_authenticated/despensa/productos/nuevo'
+    | '/_authenticated/despensa/stock/nuevo'
+    | '/_authenticated/despensa/stock/'
     | '/_authenticated/despensa/productos/$productId/editar'
   fileRoutesById: FileRoutesById
 }
@@ -163,6 +200,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDespensaIndexRouteImport
       parentRoute: typeof AuthenticatedDespensaRoute
     }
+    '/_authenticated/despensa/stock': {
+      id: '/_authenticated/despensa/stock'
+      path: '/stock'
+      fullPath: '/despensa/stock'
+      preLoaderRoute: typeof AuthenticatedDespensaStockRouteImport
+      parentRoute: typeof AuthenticatedDespensaRoute
+    }
+    '/_authenticated/despensa/stock/': {
+      id: '/_authenticated/despensa/stock/'
+      path: '/'
+      fullPath: '/despensa/stock/'
+      preLoaderRoute: typeof AuthenticatedDespensaStockIndexRouteImport
+      parentRoute: typeof AuthenticatedDespensaStockRoute
+    }
+    '/_authenticated/despensa/stock/nuevo': {
+      id: '/_authenticated/despensa/stock/nuevo'
+      path: '/nuevo'
+      fullPath: '/despensa/stock/nuevo'
+      preLoaderRoute: typeof AuthenticatedDespensaStockNuevoRouteImport
+      parentRoute: typeof AuthenticatedDespensaStockRoute
+    }
     '/_authenticated/despensa/productos/nuevo': {
       id: '/_authenticated/despensa/productos/nuevo'
       path: '/productos/nuevo'
@@ -187,6 +245,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedDespensaStockRouteChildren {
+  AuthenticatedDespensaStockNuevoRoute: typeof AuthenticatedDespensaStockNuevoRoute
+  AuthenticatedDespensaStockIndexRoute: typeof AuthenticatedDespensaStockIndexRoute
+}
+
+const AuthenticatedDespensaStockRouteChildren: AuthenticatedDespensaStockRouteChildren =
+  {
+    AuthenticatedDespensaStockNuevoRoute: AuthenticatedDespensaStockNuevoRoute,
+    AuthenticatedDespensaStockIndexRoute: AuthenticatedDespensaStockIndexRoute,
+  }
+
+const AuthenticatedDespensaStockRouteWithChildren =
+  AuthenticatedDespensaStockRoute._addFileChildren(
+    AuthenticatedDespensaStockRouteChildren,
+  )
+
 interface AuthenticatedDespensaProductosProductIdRouteChildren {
   AuthenticatedDespensaProductosProductIdEditarRoute: typeof AuthenticatedDespensaProductosProductIdEditarRoute
 }
@@ -203,12 +277,14 @@ const AuthenticatedDespensaProductosProductIdRouteWithChildren =
   )
 
 interface AuthenticatedDespensaRouteChildren {
+  AuthenticatedDespensaStockRoute: typeof AuthenticatedDespensaStockRouteWithChildren
   AuthenticatedDespensaIndexRoute: typeof AuthenticatedDespensaIndexRoute
   AuthenticatedDespensaProductosProductIdRoute: typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   AuthenticatedDespensaProductosNuevoRoute: typeof AuthenticatedDespensaProductosNuevoRoute
 }
 
 const AuthenticatedDespensaRouteChildren: AuthenticatedDespensaRouteChildren = {
+  AuthenticatedDespensaStockRoute: AuthenticatedDespensaStockRouteWithChildren,
   AuthenticatedDespensaIndexRoute: AuthenticatedDespensaIndexRoute,
   AuthenticatedDespensaProductosProductIdRoute:
     AuthenticatedDespensaProductosProductIdRouteWithChildren,

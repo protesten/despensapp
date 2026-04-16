@@ -65,6 +65,16 @@ function DespensaIndexPage() {
       </header>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
+        {/* Nav tabs */}
+        <div className="flex gap-2 border-b border-border pb-2">
+          <Button variant="default" size="sm" asChild>
+            <Link to="/despensa">Productos</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/despensa/stock">📦 Stock</Link>
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Productos</h2>
           <Button size="sm" asChild>
