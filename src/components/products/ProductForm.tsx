@@ -17,6 +17,7 @@ import {
   searchDuplicates,
 } from "@/lib/products";
 import { NutritionLookup } from "@/components/products/NutritionLookup";
+import { ProductLookupOFF } from "@/components/products/ProductLookupOFF";
 
 interface ProductFormProps {
   initialProduct?: ProductFormData;
@@ -41,6 +42,7 @@ export function ProductForm({
   const [tagInput, setTagInput] = useState("");
   const [allergenInput, setAllergenInput] = useState("");
   const [nutritionSuggested, setNutritionSuggested] = useState(false);
+  const [offApplied, setOffApplied] = useState(false);
 
   const hasLabel = product.source === "label";
 
@@ -128,6 +130,15 @@ export function ProductForm({
     setNutritionSuggested(true);
   };
 
+  const handleOFFApply = (
+    productData: Partial<ProductFormData>,
+    nutritionData: Partial<NutritionFormData>,
+  ) => {
+    setProduct((prev) => ({ ...prev, ...productData }));
+    setNutrition((prev) => ({ ...prev, ...nutritionData }));
+    setOffApplied(true);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-8">
       {/* Duplicate warning */}
@@ -175,6 +186,24 @@ export function ProductForm({
           </div>
         </CardContent>
       </Card>
+
+      {/* Open Food Facts lookup for labeled products */}
+      {hasLabel && !isEditing && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">🌐 Buscar en Open Food Facts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProductLookupOFF initialQuery={product.name} onApply={handleOFFApply} />
+            {offApplied && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-chart-4/10 px-3 py-2 text-sm">
+                <span>✅</span>
+                <span>Datos autocompletados desde Open Food Facts. Puedes editarlos antes de guardar.</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Basic info */}
       <Card>
