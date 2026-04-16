@@ -20,20 +20,26 @@ export function NutritionLookup({ productName, onApply }: NutritionLookupProps) 
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [translationInfo, setTranslationInfo] = useState<{ used: boolean; term: string | null }>({ used: false, term: null });
+  const [searchMeta, setSearchMeta] = useState<{
+    usedTranslation: boolean;
+    translatedTerm: string | null;
+    searchedAs: string;
+  } | null>(null);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
-    setTranslationInfo({ used: false, term: null });
+    setSearchMeta(null);
     try {
       const res = await searchUSDAFoods({ data: { query: query.trim() } });
       setResults(res.results);
       if (res.error) setError(res.error);
-      if (res.usedTranslation && res.translatedTerm) {
-        setTranslationInfo({ used: true, term: res.translatedTerm });
-      }
+      setSearchMeta({
+        usedTranslation: res.usedTranslation,
+        translatedTerm: res.translatedTerm,
+        searchedAs: res.searchedAs,
+      });
       setSearched(true);
     } catch {
       setError("Error al buscar datos nutricionales");
@@ -79,24 +85,22 @@ export function NutritionLookup({ productName, onApply }: NutritionLookupProps) 
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Puedes buscar en español (naranja, arroz, huevo) o en inglés. Si no hay resultados en español, se busca automáticamente la equivalencia en inglés.
+        Escribe en español o inglés. Se busca automáticamente la mejor equivalencia.
       </p>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {translationInfo.used && translationInfo.term && (
-        <div className="flex items-center gap-2 rounded-md bg-accent/50 px-3 py-2 text-xs text-accent-foreground">
-          <span>🔄</span>
+      {searched && searchMeta && results.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md bg-accent/50 px-3 py-2 text-xs text-accent-foreground">
+          <span className="mt-0.5">{searchMeta.usedTranslation ? "🔄" : "📚"}</span>
           <span>
-            Se buscó como <strong className="font-semibold">"{translationInfo.term}"</strong> (equivalencia automática). Datos de <strong>USDA FoodData Central</strong>.
+            {searchMeta.usedTranslation ? (
+              <>Buscado como <strong>"{searchMeta.translatedTerm}"</strong> (equivalencia automática). </>
+            ) : (
+              <>Buscado como <strong>"{searchMeta.searchedAs}"</strong>. </>
+            )}
+            Fuente: <strong>USDA FoodData Central</strong>
           </span>
-        </div>
-      )}
-
-      {searched && results.length > 0 && !translationInfo.used && (
-        <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-          <span>📚</span>
-          <span>Datos de <strong>USDA FoodData Central</strong></span>
         </div>
       )}
 
