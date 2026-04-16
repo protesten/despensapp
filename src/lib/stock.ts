@@ -11,7 +11,7 @@ export type StockItemWithProduct = StockItem & {
     brand: string | null;
     default_unit: string | null;
     category: string | null;
-    product_nutrition: ProductNutrition[];
+    product_nutrition: ProductNutrition[] | ProductNutrition | null;
   };
 };
 
