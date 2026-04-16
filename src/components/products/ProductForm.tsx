@@ -187,6 +187,24 @@ export function ProductForm({
         </CardContent>
       </Card>
 
+      {/* Open Food Facts lookup for labeled products */}
+      {hasLabel && !isEditing && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">🌐 Buscar en Open Food Facts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProductLookupOFF initialQuery={product.name} onApply={handleOFFApply} />
+            {offApplied && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-chart-4/10 px-3 py-2 text-sm">
+                <span>✅</span>
+                <span>Datos autocompletados desde Open Food Facts. Puedes editarlos antes de guardar.</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Basic info */}
       <Card>
         <CardHeader className="pb-3">
