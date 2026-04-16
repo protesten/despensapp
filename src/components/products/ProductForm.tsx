@@ -119,6 +119,15 @@ export function ProductForm({
     updateProduct("allergens", product.allergens.filter((x) => x !== a));
   };
 
+  const handleNutritionApply = (
+    nutritionData: Partial<NutritionFormData>,
+    meta: Pick<ProductFormData, "nutrition_source_type" | "nutrition_source_name" | "nutrition_source_reference_id" | "nutrition_confidence">
+  ) => {
+    setNutrition((prev) => ({ ...prev, ...nutritionData }));
+    setProduct((prev) => ({ ...prev, ...meta }));
+    setNutritionSuggested(true);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-8">
       {/* Duplicate warning */}
