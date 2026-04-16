@@ -414,6 +414,133 @@ export function ProductForm({
   );
 }
 
+function ImageUploadCard({
+  product,
+  updateProduct,
+}: {
+  product: ProductFormData;
+  updateProduct: (key: keyof ProductFormData, value: unknown) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Solo se permiten imágenes");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("Imagen demasiado grande (máx 10 MB)");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError("");
+
+    try {
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // strip data:... prefix
+        };
+        reader.onerror = () => reject(new Error("Error leyendo archivo"));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadProductImage({
+        data: {
+          fileName: `product_${Date.now()}_${file.name}`,
+          mimeType: file.type,
+          base64Data,
+        },
+      });
+
+      updateProduct("image_url", result.image_url);
+      updateProduct("image_drive_file_id", result.image_drive_file_id);
+      updateProduct("image_drive_folder_id", result.image_drive_folder_id);
+      updateProduct("image_storage_provider", result.image_storage_provider);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Error al subir imagen");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">📷 Imagen del producto</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* Preview */}
+        {product.image_url && (
+          <div className="relative">
+            <img
+              src={product.image_url}
+              alt="Producto"
+              className="w-full max-h-48 object-contain rounded-lg border border-border bg-muted"
+            />
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={() => {
+                updateProduct("image_url", null);
+                updateProduct("image_drive_file_id", null);
+                updateProduct("image_drive_folder_id", null);
+                updateProduct("image_storage_provider", null);
+              }}
+            >
+              ✕
+            </Button>
+          </div>
+        )}
+
+        {/* Upload button */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+        >
+          {uploading ? "Subiendo imagen…" : product.image_url ? "Cambiar imagen" : "📷 Subir imagen"}
+        </Button>
+
+        {uploading && (
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div className="h-full bg-primary animate-pulse w-2/3 rounded-full" />
+          </div>
+        )}
+
+        {uploadError && (
+          <p className="text-sm text-destructive">{uploadError}</p>
+        )}
+
+        {product.image_storage_provider === "google_drive" && product.image_drive_file_id && (
+          <p className="text-xs text-muted-foreground">
+            ☁️ Almacenada en Google Drive ({product.image_drive_file_id.slice(0, 12)}…)
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
