@@ -459,6 +459,11 @@ function ImageUploadCard({
         },
       });
 
+      if (result.error) {
+        setUploadError(result.error);
+        return;
+      }
+
       updateProduct("image_url", result.image_url);
       updateProduct("image_drive_file_id", result.image_drive_file_id);
       updateProduct("image_drive_folder_id", result.image_drive_folder_id);
