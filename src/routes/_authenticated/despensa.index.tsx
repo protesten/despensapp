@@ -73,6 +73,9 @@ function DespensaIndexPage() {
           <Button variant="outline" size="sm" asChild>
             <Link to="/despensa/stock">📦 Stock</Link>
           </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/despensa/exportar">📤 Export</Link>
+          </Button>
         </div>
 
         <div className="flex items-center justify-between">
