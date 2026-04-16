@@ -14,7 +14,343 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      import_logs: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          id: string
+          raw_payload: Json | null
+          source: string | null
+          status: Database["public"]["Enums"]["import_status"] | null
+          user_id: string
+          validated_payload: Json | null
+          validation_errors: Json | null
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          raw_payload?: Json | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["import_status"] | null
+          user_id: string
+          validated_payload?: Json | null
+          validation_errors?: Json | null
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          raw_payload?: Json | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["import_status"] | null
+          user_id?: string
+          validated_payload?: Json | null
+          validation_errors?: Json | null
+        }
+        Relationships: []
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          id: string
+          moved_at: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          notes: string | null
+          product_id: string
+          quantity_delta: number
+          stock_item_id: string | null
+          unit: Database["public"]["Enums"]["unit_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          moved_at?: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          notes?: string | null
+          product_id: string
+          quantity_delta: number
+          stock_item_id?: string | null
+          unit: Database["public"]["Enums"]["unit_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          moved_at?: string
+          movement_type?: Database["public"]["Enums"]["movement_type"]
+          notes?: string | null
+          product_id?: string
+          quantity_delta?: number
+          stock_item_id?: string | null
+          unit?: Database["public"]["Enums"]["unit_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_nutrition: {
+        Row: {
+          carbs_per_100g: number | null
+          carbs_per_100ml: number | null
+          fat_per_100g: number | null
+          fat_per_100ml: number | null
+          fiber_per_100g: number | null
+          fiber_per_100ml: number | null
+          kcal_per_100g: number | null
+          kcal_per_100ml: number | null
+          product_id: string
+          protein_per_100g: number | null
+          protein_per_100ml: number | null
+          salt_per_100g: number | null
+          salt_per_100ml: number | null
+          saturated_fat_per_100g: number | null
+          saturated_fat_per_100ml: number | null
+          sugars_per_100g: number | null
+          sugars_per_100ml: number | null
+          updated_at: string
+        }
+        Insert: {
+          carbs_per_100g?: number | null
+          carbs_per_100ml?: number | null
+          fat_per_100g?: number | null
+          fat_per_100ml?: number | null
+          fiber_per_100g?: number | null
+          fiber_per_100ml?: number | null
+          kcal_per_100g?: number | null
+          kcal_per_100ml?: number | null
+          product_id: string
+          protein_per_100g?: number | null
+          protein_per_100ml?: number | null
+          salt_per_100g?: number | null
+          salt_per_100ml?: number | null
+          saturated_fat_per_100g?: number | null
+          saturated_fat_per_100ml?: number | null
+          sugars_per_100g?: number | null
+          sugars_per_100ml?: number | null
+          updated_at?: string
+        }
+        Update: {
+          carbs_per_100g?: number | null
+          carbs_per_100ml?: number | null
+          fat_per_100g?: number | null
+          fat_per_100ml?: number | null
+          fiber_per_100g?: number | null
+          fiber_per_100ml?: number | null
+          kcal_per_100g?: number | null
+          kcal_per_100ml?: number | null
+          product_id?: string
+          protein_per_100g?: number | null
+          protein_per_100ml?: number | null
+          salt_per_100g?: number | null
+          salt_per_100ml?: number | null
+          saturated_fat_per_100g?: number | null
+          saturated_fat_per_100ml?: number | null
+          sugars_per_100g?: number | null
+          sugars_per_100ml?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_nutrition_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          allergens: string[] | null
+          barcode: string | null
+          brand: string | null
+          category: string | null
+          created_at: string
+          default_unit: Database["public"]["Enums"]["unit_type"] | null
+          id: string
+          image_drive_file_id: string | null
+          image_drive_folder_id: string | null
+          image_storage_provider: string | null
+          image_url: string | null
+          ingredients_text: string | null
+          name: string
+          nutrition_confidence: number | null
+          nutrition_source_name: string | null
+          nutrition_source_reference_id: string | null
+          nutrition_source_type:
+            | Database["public"]["Enums"]["nutrition_source_type"]
+            | null
+          package_size_unit: Database["public"]["Enums"]["unit_type"] | null
+          package_size_value: number | null
+          serving_size_unit: Database["public"]["Enums"]["unit_type"] | null
+          serving_size_value: number | null
+          servings_per_package: number | null
+          source: Database["public"]["Enums"]["nutrition_source_type"] | null
+          subcategory: string | null
+          suitability_tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          barcode?: string | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          default_unit?: Database["public"]["Enums"]["unit_type"] | null
+          id?: string
+          image_drive_file_id?: string | null
+          image_drive_folder_id?: string | null
+          image_storage_provider?: string | null
+          image_url?: string | null
+          ingredients_text?: string | null
+          name: string
+          nutrition_confidence?: number | null
+          nutrition_source_name?: string | null
+          nutrition_source_reference_id?: string | null
+          nutrition_source_type?:
+            | Database["public"]["Enums"]["nutrition_source_type"]
+            | null
+          package_size_unit?: Database["public"]["Enums"]["unit_type"] | null
+          package_size_value?: number | null
+          serving_size_unit?: Database["public"]["Enums"]["unit_type"] | null
+          serving_size_value?: number | null
+          servings_per_package?: number | null
+          source?: Database["public"]["Enums"]["nutrition_source_type"] | null
+          subcategory?: string | null
+          suitability_tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allergens?: string[] | null
+          barcode?: string | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          default_unit?: Database["public"]["Enums"]["unit_type"] | null
+          id?: string
+          image_drive_file_id?: string | null
+          image_drive_folder_id?: string | null
+          image_storage_provider?: string | null
+          image_url?: string | null
+          ingredients_text?: string | null
+          name?: string
+          nutrition_confidence?: number | null
+          nutrition_source_name?: string | null
+          nutrition_source_reference_id?: string | null
+          nutrition_source_type?:
+            | Database["public"]["Enums"]["nutrition_source_type"]
+            | null
+          package_size_unit?: Database["public"]["Enums"]["unit_type"] | null
+          package_size_value?: number | null
+          serving_size_unit?: Database["public"]["Enums"]["unit_type"] | null
+          serving_size_value?: number | null
+          servings_per_package?: number | null
+          source?: Database["public"]["Enums"]["nutrition_source_type"] | null
+          subcategory?: string | null
+          suitability_tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          preferred_units: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          preferred_units?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          preferred_units?: string | null
+        }
+        Relationships: []
+      }
+      stock_items: {
+        Row: {
+          created_at: string
+          expiration_date: string | null
+          id: string
+          location: Database["public"]["Enums"]["location_type"] | null
+          open_status: Database["public"]["Enums"]["open_status_type"] | null
+          opened_at: string | null
+          product_id: string
+          purchase_date: string | null
+          quantity: number
+          status: Database["public"]["Enums"]["stock_status"] | null
+          unit: Database["public"]["Enums"]["unit_type"]
+          unit_cost: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          location?: Database["public"]["Enums"]["location_type"] | null
+          open_status?: Database["public"]["Enums"]["open_status_type"] | null
+          opened_at?: string | null
+          product_id: string
+          purchase_date?: string | null
+          quantity: number
+          status?: Database["public"]["Enums"]["stock_status"] | null
+          unit?: Database["public"]["Enums"]["unit_type"]
+          unit_cost?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          location?: Database["public"]["Enums"]["location_type"] | null
+          open_status?: Database["public"]["Enums"]["open_status_type"] | null
+          opened_at?: string | null
+          product_id?: string
+          purchase_date?: string | null
+          quantity?: number
+          status?: Database["public"]["Enums"]["stock_status"] | null
+          unit?: Database["public"]["Enums"]["unit_type"]
+          unit_cost?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +359,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      import_status: "pending" | "previewed" | "applied" | "rejected"
+      location_type: "pantry" | "fridge" | "freezer" | "other"
+      movement_type:
+        | "purchase"
+        | "consumption"
+        | "adjustment"
+        | "waste"
+        | "expiry"
+      nutrition_source_type:
+        | "label"
+        | "openfoodfacts"
+        | "food_database"
+        | "manual"
+        | "ai_estimate"
+      open_status_type: "sealed" | "opened"
+      stock_status: "available" | "low" | "expired" | "consumed"
+      unit_type: "g" | "ml" | "unit" | "kg" | "l"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +502,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      import_status: ["pending", "previewed", "applied", "rejected"],
+      location_type: ["pantry", "fridge", "freezer", "other"],
+      movement_type: [
+        "purchase",
+        "consumption",
+        "adjustment",
+        "waste",
+        "expiry",
+      ],
+      nutrition_source_type: [
+        "label",
+        "openfoodfacts",
+        "food_database",
+        "manual",
+        "ai_estimate",
+      ],
+      open_status_type: ["sealed", "opened"],
+      stock_status: ["available", "low", "expired", "consumed"],
+      unit_type: ["g", "ml", "unit", "kg", "l"],
+    },
   },
 } as const
