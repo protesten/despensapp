@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ export const Route = createFileRoute("/_authenticated/despensa/")({
 
 function DespensaIndexPage() {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const [products, setProducts] = useState<ProductWithNutrition[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -68,8 +67,8 @@ function DespensaIndexPage() {
       <main className="p-4 max-w-2xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Productos</h2>
-          <Button size="sm" onClick={() => navigate({ to: "/despensa/productos/nuevo" })}>
-            + Nuevo
+          <Button size="sm" asChild>
+            <Link to="/despensa/productos/nuevo">+ Nuevo</Link>
           </Button>
         </div>
 
@@ -89,8 +88,8 @@ function DespensaIndexPage() {
                 : "No se encontraron resultados."}
             </p>
             {products.length === 0 && (
-              <Button onClick={() => navigate({ to: "/despensa/productos/nuevo" })}>
-                Crear primer producto
+              <Button asChild>
+                <Link to="/despensa/productos/nuevo">Crear primer producto</Link>
               </Button>
             )}
           </div>
