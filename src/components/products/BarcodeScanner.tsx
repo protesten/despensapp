@@ -32,7 +32,7 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
     readerRef.current = reader;
 
     reader
-      .decodeFromVideoDevice(undefined, videoRef.current!, (result, err) => {
+      .decodeFromVideoDevice(null, videoRef.current!, (result, err) => {
         if (result) {
           const code = result.getText();
           stop();
