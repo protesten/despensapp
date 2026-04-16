@@ -199,9 +199,8 @@ function StockIndexPage() {
                 <h3 className="text-base font-semibold mb-2">{LOCATION_LABELS[loc] ?? loc}</h3>
                 <div className="space-y-3">
                   {grouped[loc].map((item) => {
-                    const nutrition = Array.isArray(item.products.product_nutrition)
-                      ? item.products.product_nutrition[0] ?? null
-                      : null;
+                    const raw = item.products.product_nutrition;
+                    const nutrition = Array.isArray(raw) ? (raw[0] ?? null) : (raw ?? null);
                     const unit = item.unit === "ml" || item.unit === "l" ? "ml" : "g";
 
                     const isExpiringSoon = item.expiration_date && (() => {
