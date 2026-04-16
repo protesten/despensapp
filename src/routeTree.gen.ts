@@ -13,6 +13,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDespensaRouteImport } from './routes/_authenticated/despensa'
+import { Route as AuthenticatedDespensaProductosNuevoRouteImport } from './routes/_authenticated/despensa.productos.nuevo'
+import { Route as AuthenticatedDespensaProductosProductIdRouteImport } from './routes/_authenticated/despensa.productos.$productId'
+import { Route as AuthenticatedDespensaProductosProductIdEditarRouteImport } from './routes/_authenticated/despensa.productos.$productId.editar'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -33,35 +36,77 @@ const AuthenticatedDespensaRoute = AuthenticatedDespensaRouteImport.update({
   path: '/despensa',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDespensaProductosNuevoRoute =
+  AuthenticatedDespensaProductosNuevoRouteImport.update({
+    id: '/productos/nuevo',
+    path: '/productos/nuevo',
+    getParentRoute: () => AuthenticatedDespensaRoute,
+  } as any)
+const AuthenticatedDespensaProductosProductIdRoute =
+  AuthenticatedDespensaProductosProductIdRouteImport.update({
+    id: '/productos/$productId',
+    path: '/productos/$productId',
+    getParentRoute: () => AuthenticatedDespensaRoute,
+  } as any)
+const AuthenticatedDespensaProductosProductIdEditarRoute =
+  AuthenticatedDespensaProductosProductIdEditarRouteImport.update({
+    id: '/editar',
+    path: '/editar',
+    getParentRoute: () => AuthenticatedDespensaProductosProductIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/despensa': typeof AuthenticatedDespensaRoute
+  '/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
+  '/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
+  '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/despensa': typeof AuthenticatedDespensaRoute
+  '/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
+  '/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
+  '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/despensa': typeof AuthenticatedDespensaRoute
+  '/_authenticated/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/_authenticated/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
+  '/_authenticated/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
+  '/_authenticated/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/despensa'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/despensa'
+    | '/despensa/productos/$productId'
+    | '/despensa/productos/nuevo'
+    | '/despensa/productos/$productId/editar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/despensa'
+  to:
+    | '/'
+    | '/auth'
+    | '/despensa'
+    | '/despensa/productos/$productId'
+    | '/despensa/productos/nuevo'
+    | '/despensa/productos/$productId/editar'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/despensa'
+    | '/_authenticated/despensa/productos/$productId'
+    | '/_authenticated/despensa/productos/nuevo'
+    | '/_authenticated/despensa/productos/$productId/editar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -100,15 +145,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDespensaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/despensa/productos/nuevo': {
+      id: '/_authenticated/despensa/productos/nuevo'
+      path: '/productos/nuevo'
+      fullPath: '/despensa/productos/nuevo'
+      preLoaderRoute: typeof AuthenticatedDespensaProductosNuevoRouteImport
+      parentRoute: typeof AuthenticatedDespensaRoute
+    }
+    '/_authenticated/despensa/productos/$productId': {
+      id: '/_authenticated/despensa/productos/$productId'
+      path: '/productos/$productId'
+      fullPath: '/despensa/productos/$productId'
+      preLoaderRoute: typeof AuthenticatedDespensaProductosProductIdRouteImport
+      parentRoute: typeof AuthenticatedDespensaRoute
+    }
+    '/_authenticated/despensa/productos/$productId/editar': {
+      id: '/_authenticated/despensa/productos/$productId/editar'
+      path: '/editar'
+      fullPath: '/despensa/productos/$productId/editar'
+      preLoaderRoute: typeof AuthenticatedDespensaProductosProductIdEditarRouteImport
+      parentRoute: typeof AuthenticatedDespensaProductosProductIdRoute
+    }
   }
 }
 
+interface AuthenticatedDespensaProductosProductIdRouteChildren {
+  AuthenticatedDespensaProductosProductIdEditarRoute: typeof AuthenticatedDespensaProductosProductIdEditarRoute
+}
+
+const AuthenticatedDespensaProductosProductIdRouteChildren: AuthenticatedDespensaProductosProductIdRouteChildren =
+  {
+    AuthenticatedDespensaProductosProductIdEditarRoute:
+      AuthenticatedDespensaProductosProductIdEditarRoute,
+  }
+
+const AuthenticatedDespensaProductosProductIdRouteWithChildren =
+  AuthenticatedDespensaProductosProductIdRoute._addFileChildren(
+    AuthenticatedDespensaProductosProductIdRouteChildren,
+  )
+
+interface AuthenticatedDespensaRouteChildren {
+  AuthenticatedDespensaProductosProductIdRoute: typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
+  AuthenticatedDespensaProductosNuevoRoute: typeof AuthenticatedDespensaProductosNuevoRoute
+}
+
+const AuthenticatedDespensaRouteChildren: AuthenticatedDespensaRouteChildren = {
+  AuthenticatedDespensaProductosProductIdRoute:
+    AuthenticatedDespensaProductosProductIdRouteWithChildren,
+  AuthenticatedDespensaProductosNuevoRoute:
+    AuthenticatedDespensaProductosNuevoRoute,
+}
+
+const AuthenticatedDespensaRouteWithChildren =
+  AuthenticatedDespensaRoute._addFileChildren(
+    AuthenticatedDespensaRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
-  AuthenticatedDespensaRoute: typeof AuthenticatedDespensaRoute
+  AuthenticatedDespensaRoute: typeof AuthenticatedDespensaRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedDespensaRoute: AuthenticatedDespensaRoute,
+  AuthenticatedDespensaRoute: AuthenticatedDespensaRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
