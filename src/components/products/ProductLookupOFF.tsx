@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { searchOFFProducts, type OFFSuggestion } from "@/lib/openfoodfacts.functions";
 import type { NutritionFormData, ProductFormData } from "@/lib/products";
+import { BarcodeScanner } from "./BarcodeScanner";
 
 interface ProductLookupOFFProps {
   initialQuery: string;
@@ -29,7 +30,9 @@ export function ProductLookupOFF({ initialQuery, onApply }: ProductLookupOFFProp
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTab, setSearchTab] = useState<"text" | "barcode">("text");
+  const [searchTab, setSearchTab] = useState<"text" | "barcode" | "scan">("text");
+  const [scanning, setScanning] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<string | null>(null);
 
   const handleSearch = async () => {
     const q = query.trim();
@@ -44,6 +47,31 @@ export function ProductLookupOFF({ initialQuery, onApply }: ProductLookupOFFProp
       });
       setResults(res.results);
       if (res.error) setError(res.error);
+      setSearched(true);
+    } catch {
+      setError("Error al buscar en Open Food Facts");
+      setSearched(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBarcodeScanned = async (barcode: string) => {
+    setScanning(false);
+    setSearchTab("barcode");
+    setQuery(barcode);
+    setScanFeedback(`Código detectado: ${barcode}`);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await searchOFFProducts({ data: { query: barcode, searchType: "barcode" } });
+      setResults(res.results);
+      if (res.error) setError(res.error);
+      if (res.results.length === 0 && !res.error) {
+        setScanFeedback(`Código ${barcode} no encontrado en Open Food Facts. Puedes continuar manualmente.`);
+      } else {
+        setScanFeedback(`Código ${barcode} encontrado. Selecciona el producto.`);
+      }
       setSearched(true);
     } catch {
       setError("Error al buscar en Open Food Facts");
@@ -92,28 +120,47 @@ export function ProductLookupOFF({ initialQuery, onApply }: ProductLookupOFFProp
 
   return (
     <div className="space-y-3">
-      <Tabs value={searchTab} onValueChange={(v) => setSearchTab(v as "text" | "barcode")}>
+      <Tabs value={searchTab} onValueChange={(v) => { setSearchTab(v as "text" | "barcode" | "scan"); if (v === "scan") setScanning(true); else setScanning(false); setScanFeedback(null); }}>
         <TabsList className="w-full">
-          <TabsTrigger value="text" className="flex-1">🔍 Por nombre</TabsTrigger>
-          <TabsTrigger value="barcode" className="flex-1">📦 Por código de barras</TabsTrigger>
+          <TabsTrigger value="text" className="flex-1 text-xs">🔍 Nombre</TabsTrigger>
+          <TabsTrigger value="barcode" className="flex-1 text-xs">📦 Código</TabsTrigger>
+          <TabsTrigger value="scan" className="flex-1 text-xs">📷 Escanear</TabsTrigger>
         </TabsList>
       </Tabs>
 
-      <div className="flex gap-2">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={searchTab === "barcode" ? "Código de barras (EAN-13)" : "Buscar producto (ej: ColaCao, Hacendado leche)"}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
+      {scanning && (
+        <BarcodeScanner
+          onDetected={handleBarcodeScanned}
+          onClose={() => { setScanning(false); setSearchTab("text"); }}
         />
-        <Button type="button" variant="secondary" onClick={handleSearch} disabled={loading || !query.trim()} className="shrink-0">
-          {loading ? "…" : "Buscar"}
-        </Button>
-      </div>
+      )}
 
-      <p className="text-xs text-muted-foreground">
-        Busca productos envasados en Open Food Facts. Puedes usar nombre, marca o código de barras.
-      </p>
+      {!scanning && (
+        <>
+          <div className="flex gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchTab === "barcode" ? "Código de barras (EAN-13)" : "Buscar producto (ej: ColaCao, Hacendado leche)"}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
+            />
+            <Button type="button" variant="secondary" onClick={handleSearch} disabled={loading || !query.trim()} className="shrink-0">
+              {loading ? "…" : "Buscar"}
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Busca productos envasados en Open Food Facts. Puedes usar nombre, marca o código de barras.
+          </p>
+        </>
+      )}
+
+      {scanFeedback && (
+        <div className="flex items-center gap-2 rounded-md bg-accent/50 px-3 py-2 text-xs text-accent-foreground">
+          <span>📷</span>
+          <span>{scanFeedback}</span>
+        </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
