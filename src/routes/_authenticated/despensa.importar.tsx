@@ -50,7 +50,7 @@ function ImportPage() {
     setApplied(false);
     setApplyResult(null);
     try {
-      const result = await previewImport({ data: { json } });
+      const result = await previewImport(json);
       setPreview(result);
       if (result.valid) {
         toast.success(`Validación correcta. ${result.preview.length} movimiento(s) listos.`);
@@ -68,7 +68,7 @@ function ImportPage() {
     if (!preview?.import_log_id) return;
     setApplying(true);
     try {
-      const result = await applyImport({ data: { import_log_id: preview.import_log_id } });
+      const result = await applyImport(preview.import_log_id);
       setApplyResult(result);
       setApplied(true);
       if (result.error_count === 0) {
