@@ -41,15 +41,20 @@ function ActionMenu({ item, onAction, onDelete }: {
 
   return (
     <div className="relative shrink-0" ref={ref}>
-      <Button variant="ghost" size="sm" onClick={() => setOpen(!open)}>⋮</Button>
+      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(!open)}>⋮</Button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-md border border-border bg-popover p-1 shadow-md">
-          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("consumption"); }}>🍽️ Consumir</button>
-          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("adjustment"); }}>🔧 Ajustar</button>
-          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("waste"); }}>🗑️ Merma</button>
-          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => { setOpen(false); onAction("expiry"); }}>⏰ Expirar</button>
-          <Link to="/despensa/stock/$stockItemId/historial" params={{ stockItemId: item.id }} className="block w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent" onClick={() => setOpen(false)}>📋 Historial</Link>
-          <button className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-accent text-destructive" onClick={() => { setOpen(false); onDelete(); }}>✕ Eliminar</button>
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-xs rounded-t-xl sm:rounded-xl border border-border bg-popover p-2 shadow-xl mb-0 sm:mb-0" onClick={(e) => e.stopPropagation()}>
+            <p className="text-xs text-muted-foreground px-3 py-1.5 font-medium">{item.products.name}</p>
+            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("consumption"); }}>🍽️ Consumir</button>
+            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("adjustment"); }}>🔧 Ajustar</button>
+            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("waste"); }}>🗑️ Merma</button>
+            <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => { setOpen(false); onAction("expiry"); }}>⏰ Expirar</button>
+            <Link to="/despensa/stock/$stockItemId/historial" params={{ stockItemId: item.id }} className="block w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent flex items-center gap-2" onClick={() => setOpen(false)}>📋 Historial</Link>
+            <div className="border-t border-border mt-1 pt-1">
+              <button className="w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent text-destructive flex items-center gap-2" onClick={() => { setOpen(false); onDelete(); }}>✕ Eliminar</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
