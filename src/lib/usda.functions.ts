@@ -166,31 +166,56 @@ function mapToSuggestion(food: USDAFoodResult): NutritionSuggestion {
   };
 }
 
+async function fetchUSDA(query: string, apiKey: string): Promise<USDAFoodResult[]> {
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query,
+      dataType: ["Foundation", "SR Legacy"],
+      pageSize: 8,
+      sortBy: "dataType.keyword",
+      sortOrder: "asc",
+    }),
+  });
+
+  if (!res.ok) {
+    console.error("USDA API error:", res.status, await res.text());
+    throw new Error(`Error de la API USDA (${res.status})`);
+  }
+
+  const json = await res.json() as { foods: USDAFoodResult[] };
+  return json.foods ?? [];
+}
+
 export const searchUSDAFoods = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => searchInputSchema.parse(input))
   .handler(async ({ data }) => {
     const apiKey = process.env.USDA_API_KEY || "DEMO_KEY";
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(apiKey)}`;
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: data.query,
-        dataType: ["Foundation", "SR Legacy"],
-        pageSize: 8,
-        sortBy: "dataType.keyword",
-        sortOrder: "asc",
-      }),
-    });
+    try {
+      // 1. Try original query first
+      let foods = await fetchUSDA(data.query, apiKey);
+      let usedTranslation = false;
+      let translatedTerm: string | null = null;
 
-    if (!res.ok) {
-      console.error("USDA API error:", res.status, await res.text());
-      return { results: [] as NutritionSuggestion[], error: `Error de la API USDA (${res.status})` };
+      // 2. If no results, try Spanish→English fallback
+      if (foods.length === 0) {
+        const { translated, wasTranslated } = translateQuery(data.query);
+        if (wasTranslated) {
+          foods = await fetchUSDA(translated, apiKey);
+          if (foods.length > 0) {
+            usedTranslation = true;
+            translatedTerm = translated;
+          }
+        }
+      }
+
+      const results = foods.map(mapToSuggestion);
+      return { results, error: null, usedTranslation, translatedTerm };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al buscar datos nutricionales";
+      return { results: [] as NutritionSuggestion[], error: msg, usedTranslation: false, translatedTerm: null };
     }
-
-    const json = await res.json() as { foods: USDAFoodResult[] };
-    const results = (json.foods ?? []).map(mapToSuggestion);
-
-    return { results, error: null };
   });
