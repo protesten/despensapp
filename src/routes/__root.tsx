@@ -32,6 +32,11 @@ export const Route = createRootRoute({
       { title: "DespensApp — Control de Despensa" },
       { name: "description", content: "App de control de despensa con precisión nutricional, stock real y trazabilidad completa" },
       { name: "author", content: "DespensApp" },
+      { name: "theme-color", content: "#1f6f5f" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "DespensApp" },
       { property: "og:title", content: "DespensApp" },
       { property: "og:description", content: "Control de despensa con precisión nutricional" },
       { property: "og:type", content: "website" },
@@ -43,6 +48,20 @@ export const Route = createRootRoute({
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "manifest",
+        href: "/manifest.webmanifest",
+      },
+      {
+        rel: "icon",
+        href: "/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/apple-touch-icon.png",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -52,7 +71,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="es">
       <head>
         <HeadContent />
       </head>
