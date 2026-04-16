@@ -9,6 +9,8 @@ import {
   type NutritionFormData,
   EMPTY_NUTRITION,
 } from "@/lib/products";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/productos/$productId/editar")({
   component: EditProductPage,
@@ -23,7 +25,10 @@ function EditProductPage() {
   useEffect(() => {
     fetchProduct(productId)
       .then(setProduct)
-      .catch(() => navigate({ to: "/despensa" }))
+      .catch(() => {
+        toast.error("Producto no encontrado");
+        navigate({ to: "/despensa" });
+      })
       .finally(() => setLoading(false));
   }, [productId, navigate]);
 
@@ -77,20 +82,17 @@ function EditProductPage() {
 
   const handleSubmit = async (productData: ProductFormData, nutritionData: NutritionFormData) => {
     await updateProduct(productId, productData, nutritionData);
+    toast.success("Producto actualizado");
     navigate({ to: "/despensa/productos/$productId", params: { productId } });
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 py-3 sticky top-0 bg-background z-10">
-        <button
-          onClick={() => navigate({ to: "/despensa/productos/$productId", params: { productId } })}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Volver
-        </button>
-        <h1 className="text-lg font-bold mt-1">Editar producto</h1>
-      </header>
+      <AppHeader
+        title="Editar producto"
+        backTo={`/despensa/productos/${productId}` as any}
+        backLabel="← Volver"
+      />
       <main className="p-4 max-w-2xl mx-auto">
         <ProductForm
           initialProduct={initialProduct}

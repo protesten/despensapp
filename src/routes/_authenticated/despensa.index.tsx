@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/use-auth";
 import { fetchProducts, deleteProduct, type ProductWithNutrition } from "@/lib/products";
 import { MacroBadges } from "@/components/products/NutritionDisplay";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { AppNav } from "@/components/layout/AppNav";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/")({
   component: DespensaIndexPage,
 });
 
 function DespensaIndexPage() {
-  const { user, signOut } = useAuth();
   const [products, setProducts] = useState<ProductWithNutrition[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -25,6 +26,7 @@ function DespensaIndexPage() {
       setProducts(data);
     } catch (err) {
       console.error(err);
+      toast.error("Error al cargar productos");
     } finally {
       setLoading(false);
     }
@@ -49,37 +51,22 @@ function DespensaIndexPage() {
     try {
       await deleteProduct(id);
       setProducts((prev) => prev.filter((p) => p.id !== id));
+      toast.success(`"${name}" eliminado`);
     } catch (err) {
       console.error(err);
+      toast.error("Error al eliminar producto");
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 bg-background z-10">
-        <h1 className="text-lg font-bold">🥫 DespensApp</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{user?.email}</span>
-          <Button variant="ghost" size="sm" onClick={signOut}>Salir</Button>
-        </div>
-      </header>
+      <AppHeader showUser />
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
-        {/* Nav tabs */}
-        <div className="flex gap-2 border-b border-border pb-2">
-          <Button variant="default" size="sm" asChild>
-            <Link to="/despensa">Productos</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/despensa/stock">📦 Stock</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/despensa/exportar">📤 Export</Link>
-          </Button>
-        </div>
+        <AppNav />
 
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Productos</h2>
+          <h2 className="text-xl font-bold">Productos ({filtered.length})</h2>
           <Button size="sm" asChild>
             <Link to="/despensa/productos/nuevo">+ Nuevo</Link>
           </Button>
@@ -120,7 +107,7 @@ function DespensaIndexPage() {
                       >
                         {p.name}
                       </Link>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         {p.brand && <span className="text-sm text-muted-foreground">{p.brand}</span>}
                         {p.source === "label" ? (
                           <Badge variant="outline" className="text-xs">🏷️ Etiqueta</Badge>

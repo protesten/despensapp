@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,9 +79,12 @@ export function MovementDialog({ open, onOpenChange, item, type, onSuccess }: Pr
       setQuantity("");
       setNotes("");
       onOpenChange(false);
+      toast.success(`${TITLES[type]} registrado correctamente`);
       onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      const msg = err instanceof Error ? err.message : "Error al guardar";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

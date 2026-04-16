@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchProducts, type Product, UNIT_OPTIONS } from "@/lib/products";
 import { createStockItem, LOCATION_LABELS } from "@/lib/stock";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/stock/nuevo")({
   component: AddStockPage,
@@ -18,7 +20,6 @@ function AddStockPage() {
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("g");
@@ -52,15 +53,21 @@ function AddStockPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) { setError("Selecciona un producto"); return; }
-    if (!quantity || Number(quantity) <= 0) { setError("Cantidad inválida"); return; }
+    if (!selectedProduct) {
+      toast.error("Selecciona un producto");
+      return;
+    }
+    const qty = Number(quantity);
+    if (!quantity || qty <= 0 || isNaN(qty)) {
+      toast.error("La cantidad debe ser un número mayor que 0");
+      return;
+    }
 
-    setError("");
     setLoading(true);
     try {
       await createStockItem({
         product_id: selectedProduct.id,
-        quantity: Number(quantity),
+        quantity: qty,
         unit,
         location,
         purchase_date: purchaseDate || null,
@@ -69,9 +76,10 @@ function AddStockPage() {
         open_status: openStatus,
         status,
       });
+      toast.success(`Stock de "${selectedProduct.name}" añadido`);
       navigate({ to: "/despensa/stock" });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      toast.error(err instanceof Error ? err.message : "Error al guardar");
     } finally {
       setLoading(false);
     }
@@ -79,16 +87,10 @@ function AddStockPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 py-3 sticky top-0 bg-background z-10">
-        <Link to="/despensa/stock" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Volver al stock
-        </Link>
-        <h1 className="text-lg font-bold mt-1">Añadir stock</h1>
-      </header>
+      <AppHeader title="Añadir stock" backTo="/despensa/stock" backLabel="← Stock" />
 
       <main className="p-4 max-w-2xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Product selector */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">1. Seleccionar producto</CardTitle>
@@ -96,13 +98,13 @@ function AddStockPage() {
             <CardContent className="space-y-3">
               {selectedProduct ? (
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-                  <div>
-                    <p className="font-medium">{selectedProduct.name}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{selectedProduct.name}</p>
                     {selectedProduct.brand && (
                       <p className="text-sm text-muted-foreground">{selectedProduct.brand}</p>
                     )}
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedProduct(null)}>
+                  <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setSelectedProduct(null)}>
                     Cambiar
                   </Button>
                 </div>
@@ -112,8 +114,9 @@ function AddStockPage() {
                     placeholder="Buscar producto por nombre, marca o código..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    autoFocus
                   />
-                  <div className="max-h-48 overflow-y-auto space-y-1">
+                  <div className="max-h-48 overflow-y-auto space-y-0.5">
                     {filteredProducts.length === 0 ? (
                       <p className="text-sm text-muted-foreground p-2">
                         {products.length === 0
@@ -125,7 +128,7 @@ function AddStockPage() {
                         <button
                           key={p.id}
                           type="button"
-                          className="w-full text-left p-2 rounded hover:bg-accent transition-colors"
+                          className="w-full text-left p-2.5 rounded-lg hover:bg-accent transition-colors"
                           onClick={() => handleSelect(p)}
                         >
                           <p className="font-medium text-sm">{p.name}</p>
@@ -139,7 +142,6 @@ function AddStockPage() {
             </CardContent>
           </Card>
 
-          {/* Stock details */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">2. Detalles del stock</CardTitle>
@@ -148,10 +150,10 @@ function AddStockPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Cantidad *</Label>
-                  <Input type="number" step="any" min="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+                  <Input type="number" step="any" min="0.01" value={quantity} onChange={(e) => setQuantity(e.target.value)} required placeholder="ej. 500" />
                 </div>
                 <div className="space-y-1">
-                  <Label>Unidad</Label>
+                  <Label>Unidad *</Label>
                   <Select value={unit} onValueChange={setUnit}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -189,38 +191,25 @@ function AddStockPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Coste unitario (€)</Label>
-                  <Input type="number" step="0.01" min="0" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} />
+                  <Input type="number" step="0.01" min="0" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="ej. 2.50" />
                 </div>
                 <div className="space-y-1">
                   <Label>Estado apertura</Label>
                   <Select value={openStatus} onValueChange={setOpenStatus}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sealed">Cerrado</SelectItem>
-                      <SelectItem value="opened">Abierto</SelectItem>
+                      <SelectItem value="sealed">🔒 Cerrado</SelectItem>
+                      <SelectItem value="opened">📂 Abierto</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-
-              <div className="space-y-1">
-                <Label>Estado inicial</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Disponible</SelectItem>
-                    <SelectItem value="low">Poco</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </CardContent>
           </Card>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={loading || !selectedProduct}>
-              {loading ? "Guardando..." : "Añadir stock"}
+              {loading ? "Guardando..." : "✅ Añadir stock"}
             </Button>
             <Button type="button" variant="outline" asChild>
               <Link to="/despensa/stock">Cancelar</Link>
