@@ -32,7 +32,7 @@ export async function exportMovements() {
 export async function exportConsolidated() {
   const { data, error } = await supabase
     .from("stock_items")
-    .select("*, products(id, name, brand, category, subcategory, suitability_tags, allergens, source, nutrition_source_type, product_nutrition(kcal_per_100g, kcal_per_100ml, protein_per_100g, protein_per_100ml, carbs_per_100g, carbs_per_100ml, fat_per_100g, fat_per_100ml))")
+    .select("*, products(id, name, brand, category, subcategory, suitability_tags, allergens, source, nutrition_source_type, product_nutrition(kcal_per_100g, kcal_per_100ml, protein_per_100g, protein_per_100ml, carbs_per_100g, carbs_per_100ml, fat_per_100g, fat_per_100ml, fiber_per_100g, fiber_per_100ml, sugars_per_100g, sugars_per_100ml, saturated_fat_per_100g, saturated_fat_per_100ml, salt_per_100g, salt_per_100ml))")
     .neq("status", "consumed");
 
   if (error) throw new Error(error.message);
@@ -51,6 +51,7 @@ export async function exportConsolidated() {
       unit: s.unit,
       location: s.location,
       expiration_date: s.expiration_date,
+      open_status: s.open_status ?? null,
       kcal_per_100g: n?.kcal_per_100g ?? null,
       kcal_per_100ml: n?.kcal_per_100ml ?? null,
       protein_per_100g: n?.protein_per_100g ?? null,
@@ -59,6 +60,14 @@ export async function exportConsolidated() {
       carbs_per_100ml: n?.carbs_per_100ml ?? null,
       fat_per_100g: n?.fat_per_100g ?? null,
       fat_per_100ml: n?.fat_per_100ml ?? null,
+      fiber_per_100g: n?.fiber_per_100g ?? null,
+      fiber_per_100ml: n?.fiber_per_100ml ?? null,
+      sugars_per_100g: n?.sugars_per_100g ?? null,
+      sugars_per_100ml: n?.sugars_per_100ml ?? null,
+      saturated_fat_per_100g: n?.saturated_fat_per_100g ?? null,
+      saturated_fat_per_100ml: n?.saturated_fat_per_100ml ?? null,
+      salt_per_100g: n?.salt_per_100g ?? null,
+      salt_per_100ml: n?.salt_per_100ml ?? null,
       suitability_tags: p?.suitability_tags ?? null,
       allergens: p?.allergens ?? null,
       source: p?.source ?? null,
