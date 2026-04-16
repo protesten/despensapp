@@ -79,9 +79,12 @@ export function MovementDialog({ open, onOpenChange, item, type, onSuccess }: Pr
       setQuantity("");
       setNotes("");
       onOpenChange(false);
+      toast.success(`${TITLES[type]} registrado correctamente`);
       onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      const msg = err instanceof Error ? err.message : "Error al guardar";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
