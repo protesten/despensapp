@@ -56,6 +56,31 @@ export function ProductLookupOFF({ initialQuery, onApply }: ProductLookupOFFProp
     }
   };
 
+  const handleBarcodeScanned = async (barcode: string) => {
+    setScanning(false);
+    setSearchTab("barcode");
+    setQuery(barcode);
+    setScanFeedback(`Código detectado: ${barcode}`);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await searchOFFProducts({ data: { query: barcode, searchType: "barcode" } });
+      setResults(res.results);
+      if (res.error) setError(res.error);
+      if (res.results.length === 0 && !res.error) {
+        setScanFeedback(`Código ${barcode} no encontrado en Open Food Facts. Puedes continuar manualmente.`);
+      } else {
+        setScanFeedback(`Código ${barcode} encontrado. Selecciona el producto.`);
+      }
+      setSearched(true);
+    } catch {
+      setError("Error al buscar en Open Food Facts");
+      setSearched(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSelect = (item: OFFSuggestion) => {
     onApply(
       {
@@ -95,10 +120,11 @@ export function ProductLookupOFF({ initialQuery, onApply }: ProductLookupOFFProp
 
   return (
     <div className="space-y-3">
-      <Tabs value={searchTab} onValueChange={(v) => setSearchTab(v as "text" | "barcode")}>
+      <Tabs value={searchTab} onValueChange={(v) => { setSearchTab(v as "text" | "barcode" | "scan"); if (v === "scan") setScanning(true); else setScanning(false); setScanFeedback(null); }}>
         <TabsList className="w-full">
-          <TabsTrigger value="text" className="flex-1">🔍 Por nombre</TabsTrigger>
-          <TabsTrigger value="barcode" className="flex-1">📦 Por código de barras</TabsTrigger>
+          <TabsTrigger value="text" className="flex-1 text-xs">🔍 Nombre</TabsTrigger>
+          <TabsTrigger value="barcode" className="flex-1 text-xs">📦 Código</TabsTrigger>
+          <TabsTrigger value="scan" className="flex-1 text-xs">📷 Escanear</TabsTrigger>
         </TabsList>
       </Tabs>
 
