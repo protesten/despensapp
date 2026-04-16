@@ -16,6 +16,7 @@ import {
   EMPTY_NUTRITION,
   searchDuplicates,
 } from "@/lib/products";
+import { NutritionLookup } from "@/components/products/NutritionLookup";
 
 interface ProductFormProps {
   initialProduct?: ProductFormData;
@@ -39,6 +40,7 @@ export function ProductForm({
   const [duplicates, setDuplicates] = useState<Product[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [allergenInput, setAllergenInput] = useState("");
+  const [nutritionSuggested, setNutritionSuggested] = useState(false);
 
   const hasLabel = product.source === "label";
 
@@ -115,6 +117,15 @@ export function ProductForm({
 
   const removeAllergen = (a: string) => {
     updateProduct("allergens", product.allergens.filter((x) => x !== a));
+  };
+
+  const handleNutritionApply = (
+    nutritionData: Partial<NutritionFormData>,
+    meta: Pick<ProductFormData, "nutrition_source_type" | "nutrition_source_name" | "nutrition_source_reference_id" | "nutrition_confidence">
+  ) => {
+    setNutrition((prev) => ({ ...prev, ...nutritionData }));
+    setProduct((prev) => ({ ...prev, ...meta }));
+    setNutritionSuggested(true);
   };
 
   return (
@@ -240,6 +251,19 @@ export function ProductForm({
           <CardTitle className="text-base">Información nutricional</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* USDA lookup for unlabeled products */}
+          {!hasLabel && (
+            <div className="mb-4">
+              <NutritionLookup productName={product.name} onApply={handleNutritionApply} />
+              {nutritionSuggested && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-sm">
+                  <span>📊</span>
+                  <span>Datos obtenidos de base nutricional (USDA). Puedes editarlos antes de guardar.</span>
+                </div>
+              )}
+              <Separator className="mt-4" />
+            </div>
+          )}
           <Tabs defaultValue="100g">
             <TabsList className="w-full">
               <TabsTrigger value="100g" className="flex-1">Por 100 g</TabsTrigger>
