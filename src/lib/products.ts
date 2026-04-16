@@ -147,16 +147,33 @@ export async function updateProduct(
   product: Partial<ProductFormData>,
   nutrition: Partial<NutritionFormData>,
 ): Promise<void> {
-  const updateData: Record<string, unknown> = { ...product };
-  if (product.default_unit) updateData.default_unit = product.default_unit;
-  if (product.serving_size_unit) updateData.serving_size_unit = product.serving_size_unit;
-  if (product.package_size_unit) updateData.package_size_unit = product.package_size_unit;
-  if (product.source) updateData.source = product.source;
-  if (product.nutrition_source_type) updateData.nutrition_source_type = product.nutrition_source_type;
-
   const { error } = await supabase
     .from("products")
-    .update(updateData)
+    .update({
+      name: product.name,
+      brand: product.brand,
+      barcode: product.barcode,
+      default_unit: product.default_unit as TablesInsert<"products">["default_unit"],
+      serving_size_value: product.serving_size_value,
+      serving_size_unit: product.serving_size_unit as TablesInsert<"products">["serving_size_unit"],
+      package_size_value: product.package_size_value,
+      package_size_unit: product.package_size_unit as TablesInsert<"products">["package_size_unit"],
+      servings_per_package: product.servings_per_package,
+      category: product.category,
+      subcategory: product.subcategory,
+      suitability_tags: product.suitability_tags,
+      ingredients_text: product.ingredients_text,
+      allergens: product.allergens,
+      source: product.source as TablesInsert<"products">["source"],
+      nutrition_source_type: product.nutrition_source_type as TablesInsert<"products">["nutrition_source_type"],
+      nutrition_source_name: product.nutrition_source_name,
+      nutrition_source_reference_id: product.nutrition_source_reference_id,
+      nutrition_confidence: product.nutrition_confidence,
+      image_url: product.image_url,
+      image_storage_provider: product.image_storage_provider,
+      image_drive_file_id: product.image_drive_file_id,
+      image_drive_folder_id: product.image_drive_folder_id,
+    })
     .eq("id", id);
 
   if (error) throw error;
