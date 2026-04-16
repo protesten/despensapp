@@ -399,26 +399,8 @@ export function ProductForm({
         </CardContent>
       </Card>
 
-      {/* Image fields */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Imagen</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <FieldRow label="URL de imagen">
-            <Input value={product.image_url ?? ""} onChange={(e) => updateProduct("image_url", e.target.value || null)} placeholder="https://..." />
-          </FieldRow>
-          <FieldRow label="Proveedor">
-            <Input value={product.image_storage_provider ?? ""} onChange={(e) => updateProduct("image_storage_provider", e.target.value || null)} placeholder="google_drive / url" />
-          </FieldRow>
-          <FieldRow label="Drive File ID">
-            <Input value={product.image_drive_file_id ?? ""} onChange={(e) => updateProduct("image_drive_file_id", e.target.value || null)} />
-          </FieldRow>
-          <FieldRow label="Drive Folder ID">
-            <Input value={product.image_drive_folder_id ?? ""} onChange={(e) => updateProduct("image_drive_folder_id", e.target.value || null)} />
-          </FieldRow>
-        </CardContent>
-      </Card>
+      {/* Image upload */}
+      <ImageUploadCard product={product} updateProduct={updateProduct} />
 
       {error && <p className="text-sm text-destructive px-1">{error}</p>}
 
