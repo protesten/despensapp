@@ -16,6 +16,7 @@ import {
   EMPTY_NUTRITION,
   searchDuplicates,
 } from "@/lib/products";
+import { NutritionLookup } from "@/components/products/NutritionLookup";
 
 interface ProductFormProps {
   initialProduct?: ProductFormData;
