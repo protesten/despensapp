@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDespensaRouteImport } from './routes/_authenticated/despensa'
+import { Route as AuthenticatedDespensaIndexRouteImport } from './routes/_authenticated/despensa.index'
 import { Route as AuthenticatedDespensaProductosNuevoRouteImport } from './routes/_authenticated/despensa.productos.nuevo'
 import { Route as AuthenticatedDespensaProductosProductIdRouteImport } from './routes/_authenticated/despensa.productos.$productId'
 import { Route as AuthenticatedDespensaProductosProductIdEditarRouteImport } from './routes/_authenticated/despensa.productos.$productId.editar'
@@ -36,6 +37,12 @@ const AuthenticatedDespensaRoute = AuthenticatedDespensaRouteImport.update({
   path: '/despensa',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDespensaIndexRoute =
+  AuthenticatedDespensaIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDespensaRoute,
+  } as any)
 const AuthenticatedDespensaProductosNuevoRoute =
   AuthenticatedDespensaProductosNuevoRouteImport.update({
     id: '/productos/nuevo',
@@ -59,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/despensa/': typeof AuthenticatedDespensaIndexRoute
   '/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   '/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
   '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
@@ -66,7 +74,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/despensa': typeof AuthenticatedDespensaIndexRoute
   '/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   '/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
   '/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/_authenticated/despensa/': typeof AuthenticatedDespensaIndexRoute
   '/_authenticated/despensa/productos/$productId': typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   '/_authenticated/despensa/productos/nuevo': typeof AuthenticatedDespensaProductosNuevoRoute
   '/_authenticated/despensa/productos/$productId/editar': typeof AuthenticatedDespensaProductosProductIdEditarRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/despensa'
+    | '/despensa/'
     | '/despensa/productos/$productId'
     | '/despensa/productos/nuevo'
     | '/despensa/productos/$productId/editar'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/despensa'
+    | '/_authenticated/despensa/'
     | '/_authenticated/despensa/productos/$productId'
     | '/_authenticated/despensa/productos/nuevo'
     | '/_authenticated/despensa/productos/$productId/editar'
@@ -145,6 +156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDespensaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/despensa/': {
+      id: '/_authenticated/despensa/'
+      path: '/'
+      fullPath: '/despensa/'
+      preLoaderRoute: typeof AuthenticatedDespensaIndexRouteImport
+      parentRoute: typeof AuthenticatedDespensaRoute
+    }
     '/_authenticated/despensa/productos/nuevo': {
       id: '/_authenticated/despensa/productos/nuevo'
       path: '/productos/nuevo'
@@ -185,11 +203,13 @@ const AuthenticatedDespensaProductosProductIdRouteWithChildren =
   )
 
 interface AuthenticatedDespensaRouteChildren {
+  AuthenticatedDespensaIndexRoute: typeof AuthenticatedDespensaIndexRoute
   AuthenticatedDespensaProductosProductIdRoute: typeof AuthenticatedDespensaProductosProductIdRouteWithChildren
   AuthenticatedDespensaProductosNuevoRoute: typeof AuthenticatedDespensaProductosNuevoRoute
 }
 
 const AuthenticatedDespensaRouteChildren: AuthenticatedDespensaRouteChildren = {
+  AuthenticatedDespensaIndexRoute: AuthenticatedDespensaIndexRoute,
   AuthenticatedDespensaProductosProductIdRoute:
     AuthenticatedDespensaProductosProductIdRouteWithChildren,
   AuthenticatedDespensaProductosNuevoRoute:
@@ -221,3 +241,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
