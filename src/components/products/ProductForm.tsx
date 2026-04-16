@@ -251,6 +251,19 @@ export function ProductForm({
           <CardTitle className="text-base">Información nutricional</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* USDA lookup for unlabeled products */}
+          {!hasLabel && (
+            <div className="mb-4">
+              <NutritionLookup productName={product.name} onApply={handleNutritionApply} />
+              {nutritionSuggested && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-sm">
+                  <span>📊</span>
+                  <span>Datos obtenidos de base nutricional (USDA). Puedes editarlos antes de guardar.</span>
+                </div>
+              )}
+              <Separator className="mt-4" />
+            </div>
+          )}
           <Tabs defaultValue="100g">
             <TabsList className="w-full">
               <TabsTrigger value="100g" className="flex-1">Por 100 g</TabsTrigger>
