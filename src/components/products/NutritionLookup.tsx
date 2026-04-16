@@ -20,15 +20,20 @@ export function NutritionLookup({ productName, onApply }: NutritionLookupProps) 
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [translationInfo, setTranslationInfo] = useState<{ used: boolean; term: string | null }>({ used: false, term: null });
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
+    setTranslationInfo({ used: false, term: null });
     try {
       const res = await searchUSDAFoods({ data: { query: query.trim() } });
       setResults(res.results);
       if (res.error) setError(res.error);
+      if (res.usedTranslation && res.translatedTerm) {
+        setTranslationInfo({ used: true, term: res.translatedTerm });
+      }
       setSearched(true);
     } catch {
       setError("Error al buscar datos nutricionales");
@@ -65,7 +70,7 @@ export function NutritionLookup({ productName, onApply }: NutritionLookupProps) 
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar alimento (ej: orange, rice, egg)"
+          placeholder="Buscar alimento (ej: naranja, arroz, pollo)"
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
         />
         <Button type="button" variant="secondary" onClick={handleSearch} disabled={loading || !query.trim()} className="shrink-0">
@@ -74,10 +79,26 @@ export function NutritionLookup({ productName, onApply }: NutritionLookupProps) 
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Busca en inglés para mejores resultados (ej: "apple", "chicken breast", "white rice")
+        Puedes buscar en español (naranja, arroz, huevo) o en inglés. Si no hay resultados en español, se busca automáticamente la equivalencia en inglés.
       </p>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {translationInfo.used && translationInfo.term && (
+        <div className="flex items-center gap-2 rounded-md bg-accent/50 px-3 py-2 text-xs text-accent-foreground">
+          <span>🔄</span>
+          <span>
+            Se buscó como <strong className="font-semibold">"{translationInfo.term}"</strong> (equivalencia automática). Datos de <strong>USDA FoodData Central</strong>.
+          </span>
+        </div>
+      )}
+
+      {searched && results.length > 0 && !translationInfo.used && (
+        <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+          <span>📚</span>
+          <span>Datos de <strong>USDA FoodData Central</strong></span>
+        </div>
+      )}
 
       {searched && results.length === 0 && !error && (
         <Card className="border-dashed">
@@ -107,9 +128,9 @@ export function NutritionLookup({ productName, onApply }: NutritionLookupProps) 
                 </div>
                 <div className="flex gap-2 flex-wrap mt-2">
                   <MiniPill label="Kcal" value={item.kcal} />
-                  <MiniPill label="P" value={item.protein} unit="g" />
+                  <MiniPill label="Prot" value={item.protein} unit="g" />
                   <MiniPill label="HC" value={item.carbs} unit="g" />
-                  <MiniPill label="G" value={item.fat} unit="g" />
+                  <MiniPill label="Grasa" value={item.fat} unit="g" />
                 </div>
               </CardContent>
             </Card>
