@@ -37,11 +37,15 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "DespensApp" },
-      { property: "og:title", content: "DespensApp" },
-      { property: "og:description", content: "Control de despensa con precisión nutricional" },
+      { property: "og:title", content: "DespensApp — Control de Despensa" },
+      { property: "og:description", content: "App de control de despensa con precisión nutricional, stock real y trazabilidad completa" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "DespensApp — Control de Despensa" },
+      { name: "twitter:description", content: "App de control de despensa con precisión nutricional, stock real y trazabilidad completa" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/251ba415-5d36-40a2-9dda-e7bd12145da3" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/251ba415-5d36-40a2-9dda-e7bd12145da3" },
     ],
     links: [
       {
