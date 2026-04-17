@@ -121,19 +121,6 @@ function DespensaIndexPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        asChild
-                      >
-                        <Link
-                          to="/despensa/productos/$productId/editar"
-                          params={{ productId: p.id }}
-                          aria-label={`Editar ${p.name}`}
-                        >
-                          ✏️
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
                         className="text-destructive"
                         onClick={() => handleDelete(p.id, p.name)}
                         aria-label={`Eliminar ${p.name}`}
