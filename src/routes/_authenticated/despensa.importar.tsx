@@ -273,6 +273,7 @@ function FormatField({ name, type, required, desc }: { name: string; type: strin
 
 function PreviewRow({ movement, index }: { movement: PreviewMovement; index: number }) {
   const hasError = !!movement.error;
+  const wasResolved = !!movement.resolved_stock_item_id;
   return (
     <div
       className={`p-3 rounded-lg border text-sm ${hasError ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/30"}`}
@@ -300,8 +301,28 @@ function PreviewRow({ movement, index }: { movement: PreviewMovement; index: num
           </span>
         </p>
         {movement.notes && <p className="italic">📝 {movement.notes}</p>}
+        {wasResolved && !hasError && (
+          <p className="text-amber-600 bg-amber-500/10 px-2 py-1 rounded text-[11px]">
+            ℹ️ stock_item_id no coincidía pero se resolvió automáticamente desde product_id (único stock activo).
+          </p>
+        )}
         {movement.error && (
-          <p className="text-destructive font-medium bg-destructive/10 px-2 py-1 rounded">⚠️ {movement.error}</p>
+          <div className="text-destructive font-medium bg-destructive/10 px-2 py-1 rounded space-y-1">
+            <p>⚠️ {movement.error}</p>
+            {(movement.product_id_exists !== undefined || movement.ids_swapped_hint) && (
+              <div className="text-[11px] font-normal text-destructive/80 space-y-0.5">
+                {movement.product_id_exists === true && (
+                  <p>• product_id <code className="bg-background/50 px-1 rounded">{movement.product_id.slice(0, 8)}…</code> sí existe en tu inventario</p>
+                )}
+                {movement.product_id_exists === false && (
+                  <p>• product_id <code className="bg-background/50 px-1 rounded">{movement.product_id.slice(0, 8)}…</code> tampoco existe</p>
+                )}
+                {movement.ids_swapped_hint && (
+                  <p>• 🔄 El <code className="bg-background/50 px-1 rounded">stock_item_id</code> enviado parece ser realmente un <code className="bg-background/50 px-1 rounded">product_id</code> — la IA pudo haber invertido los campos</p>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
