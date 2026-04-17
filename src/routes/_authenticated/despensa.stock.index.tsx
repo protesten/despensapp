@@ -16,6 +16,7 @@ import { MacroBadges } from "@/components/products/NutritionDisplay";
 import { MovementDialog } from "@/components/stock/MovementDialog";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppNav } from "@/components/layout/AppNav";
+import { fromBulk, formatNumber, pluralizeUnit } from "@/lib/stock-conversion";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/stock/")({
@@ -244,9 +245,25 @@ function StockIndexPage() {
                                 {item.products.brand && (
                                   <span className="text-xs text-muted-foreground">{item.products.brand}</span>
                                 )}
-                                <Badge variant="outline" className="text-xs">
-                                  {item.quantity} {item.unit}
-                                </Badge>
+                                {(() => {
+                                  const mode = item.tracking_mode ?? "bulk";
+                                  if (mode === "bulk") {
+                                    return (
+                                      <Badge variant="outline" className="text-xs">
+                                        {formatNumber(Number(item.quantity))} {item.unit}
+                                      </Badge>
+                                    );
+                                  }
+                                  const count = fromBulk(Number(item.quantity), mode, item.products) ?? 0;
+                                  return (
+                                    <Badge variant="outline" className="text-xs">
+                                      {formatNumber(count)} {pluralizeUnit(mode, count)}
+                                      <span className="ml-1 text-muted-foreground">
+                                        ({formatNumber(Number(item.quantity))} {item.unit})
+                                      </span>
+                                    </Badge>
+                                  );
+                                })()}
                                 <Badge
                                   variant={item.status === "low" ? "destructive" : "secondary"}
                                   className="text-xs"
