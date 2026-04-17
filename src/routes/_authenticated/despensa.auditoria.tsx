@@ -3,6 +3,13 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppNav } from "@/components/layout/AppNav";
 import { toast } from "sonner";
@@ -11,12 +18,21 @@ import {
   applyCategoryNormalization,
   fixSourceCoherence,
   mergeProducts,
+  setProductRelevance,
   type AuditReport,
+  type MissingNutritionItem,
 } from "@/lib/audit.functions";
+import type { NutritionRelevance } from "@/lib/nutrition-relevance";
 
 export const Route = createFileRoute("/_authenticated/despensa/auditoria")({
   component: AuditPage,
 });
+
+const RELEVANCE_LABEL: Record<NutritionRelevance, string> = {
+  required: "Crítica",
+  optional: "Opcional",
+  ignore: "Ignorar",
+};
 
 function AuditPage() {
   const [report, setReport] = useState<AuditReport | null>(null);
@@ -27,9 +43,9 @@ function AuditPage() {
     setLoading(true);
     try {
       const r: any = await auditPantry();
-      // Normalize: ensure all arrays exist (handle partial/undefined responses)
       const safe: AuditReport = {
-        missing_nutrition: Array.isArray(r?.missing_nutrition) ? r.missing_nutrition : [],
+        missing_nutrition_critical: Array.isArray(r?.missing_nutrition_critical) ? r.missing_nutrition_critical : [],
+        missing_nutrition_optional: Array.isArray(r?.missing_nutrition_optional) ? r.missing_nutrition_optional : [],
         dirty_categories: Array.isArray(r?.dirty_categories) ? r.dirty_categories : [],
         incoherent_source: Array.isArray(r?.incoherent_source) ? r.incoherent_source : [],
         duplicates: Array.isArray(r?.duplicates) ? r.duplicates : [],
@@ -91,6 +107,21 @@ function AuditPage() {
     }
   };
 
+  const handleRelevanceChange = async (productId: string, value: string) => {
+    setBusy(true);
+    try {
+      const v = value === "auto" ? null : (value as NutritionRelevance);
+      await setProductRelevance(productId, v);
+      toast.success("Relevancia actualizada");
+      await load();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message ?? "Error al actualizar relevancia");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showUser />
@@ -114,7 +145,15 @@ function AuditPage() {
             {/* Resumen */}
             <Card>
               <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                <Stat label="Sin nutrición" value={report.missing_nutrition.length} />
+                <div>
+                  <p className="text-2xl font-bold">{report.missing_nutrition_critical.length}</p>
+                  <p className="text-xs text-muted-foreground">Sin nutrición (crítica)</p>
+                  {report.missing_nutrition_optional.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      +{report.missing_nutrition_optional.length} opcionales
+                    </p>
+                  )}
+                </div>
                 <Stat label="Cat. sucias" value={report.dirty_categories.length} />
                 <Stat label="Source incoh." value={report.incoherent_source.length} />
                 <Stat label="Duplicados" value={report.duplicates.length} />
@@ -179,25 +218,54 @@ function AuditPage() {
               </CardContent>
             </Card>
 
-            {/* Sin nutrición */}
+            {/* Sin nutrición — Crítica */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">
-                  Sin nutrición ({report.missing_nutrition.length})
+                <CardTitle className="text-base text-destructive">
+                  Sin nutrición · crítica ({report.missing_nutrition_critical.length})
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1 pt-0">
-                {report.missing_nutrition.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">✅ Todos con nutrición.</p>
+              <CardContent className="space-y-2 pt-0">
+                {report.missing_nutrition_critical.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">✅ Todos los productos relevantes tienen nutrición.</p>
                 ) : (
-                  report.missing_nutrition.slice(0, 20).map((m) => (
-                    <p key={m.product_id} className="text-sm">
-                      {m.name} {m.brand && <span className="text-muted-foreground">· {m.brand}</span>}
-                    </p>
+                  report.missing_nutrition_critical.slice(0, 30).map((m) => (
+                    <RelevanceRow
+                      key={m.product_id}
+                      item={m}
+                      busy={busy}
+                      onChange={handleRelevanceChange}
+                    />
                   ))
                 )}
-                {report.missing_nutrition.length > 20 && (
-                  <p className="text-xs text-muted-foreground">+ {report.missing_nutrition.length - 20} más</p>
+                {report.missing_nutrition_critical.length > 30 && (
+                  <p className="text-xs text-muted-foreground">+ {report.missing_nutrition_critical.length - 30} más</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Sin nutrición — Opcional */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-muted-foreground">
+                  Sin nutrición · opcional ({report.missing_nutrition_optional.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                {report.missing_nutrition_optional.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">✅ Sin pendientes opcionales.</p>
+                ) : (
+                  report.missing_nutrition_optional.slice(0, 30).map((m) => (
+                    <RelevanceRow
+                      key={m.product_id}
+                      item={m}
+                      busy={busy}
+                      onChange={handleRelevanceChange}
+                    />
+                  ))
+                )}
+                {report.missing_nutrition_optional.length > 30 && (
+                  <p className="text-xs text-muted-foreground">+ {report.missing_nutrition_optional.length - 30} más</p>
                 )}
               </CardContent>
             </Card>
@@ -263,6 +331,54 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div>
       <p className="text-2xl font-bold">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function RelevanceRow({
+  item,
+  busy,
+  onChange,
+}: {
+  item: MissingNutritionItem;
+  busy: boolean;
+  onChange: (productId: string, value: string) => void;
+}) {
+  const variant: "destructive" | "secondary" | "outline" =
+    item.nutrition_relevance === "required"
+      ? "destructive"
+      : item.nutrition_relevance === "ignore"
+        ? "outline"
+        : "secondary";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm border-b border-border/50 last:border-0 pb-2 last:pb-0">
+      <div className="flex-1 min-w-0">
+        <span className="font-medium">{item.name}</span>
+        {item.brand && <span className="text-muted-foreground"> · {item.brand}</span>}
+        {item.category && (
+          <span className="text-xs text-muted-foreground"> · {item.category}</span>
+        )}
+      </div>
+      <Badge variant={variant} className="text-xs shrink-0">
+        {RELEVANCE_LABEL[item.nutrition_relevance]}
+        {item.manual_override == null && " (auto)"}
+      </Badge>
+      <Select
+        value={item.manual_override ?? "auto"}
+        onValueChange={(v) => onChange(item.product_id, v)}
+        disabled={busy}
+      >
+        <SelectTrigger className="h-7 w-[110px] text-xs shrink-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="auto">Auto</SelectItem>
+          <SelectItem value="required">Crítica</SelectItem>
+          <SelectItem value="optional">Opcional</SelectItem>
+          <SelectItem value="ignore">Ignorar</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }
