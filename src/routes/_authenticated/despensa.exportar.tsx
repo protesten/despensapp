@@ -109,6 +109,23 @@ function ExportPage() {
     }
   };
 
+  const handleExportConsolidatedTabular = async (fmt: "csv" | "xlsx") => {
+    setLoading(true);
+    setLabel(fmt === "csv" ? "Consolidado CSV" : "Consolidado Excel");
+    setItemCount(null);
+    setResult("");
+    try {
+      const count =
+        fmt === "csv" ? await exportConsolidatedToCSV() : await exportConsolidatedToXLSX();
+      setItemCount(count);
+      toast.success(`${count} productos exportados a ${fmt.toUpperCase()}`);
+    } catch (e: any) {
+      toast.error(`Error al exportar: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showUser />
