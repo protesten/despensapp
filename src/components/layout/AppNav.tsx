@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { to: "/despensa", label: "📦 Productos", exact: true },
   { to: "/despensa/stock", label: "🗄️ Stock", exact: false },
+  { to: "/despensa/auditoria", label: "🔍 Auditoría", exact: false },
   { to: "/despensa/exportar", label: "📤 Export", exact: false },
   { to: "/despensa/importar", label: "📥 Import", exact: false },
 ] as const;

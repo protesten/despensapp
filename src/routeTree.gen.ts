@@ -17,6 +17,7 @@ import { Route as AuthenticatedDespensaIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedDespensaStockRouteImport } from './routes/_authenticated/despensa.stock'
 import { Route as AuthenticatedDespensaImportarRouteImport } from './routes/_authenticated/despensa.importar'
 import { Route as AuthenticatedDespensaExportarRouteImport } from './routes/_authenticated/despensa.exportar'
+import { Route as AuthenticatedDespensaAuditoriaRouteImport } from './routes/_authenticated/despensa.auditoria'
 import { Route as AuthenticatedDespensaStockIndexRouteImport } from './routes/_authenticated/despensa.stock.index'
 import { Route as AuthenticatedDespensaStockNuevoRouteImport } from './routes/_authenticated/despensa.stock.nuevo'
 import { Route as AuthenticatedDespensaProductosNuevoRouteImport } from './routes/_authenticated/despensa.productos.nuevo'
@@ -67,6 +68,12 @@ const AuthenticatedDespensaExportarRoute =
     path: '/exportar',
     getParentRoute: () => AuthenticatedDespensaRoute,
   } as any)
+const AuthenticatedDespensaAuditoriaRoute =
+  AuthenticatedDespensaAuditoriaRouteImport.update({
+    id: '/auditoria',
+    path: '/auditoria',
+    getParentRoute: () => AuthenticatedDespensaRoute,
+  } as any)
 const AuthenticatedDespensaStockIndexRoute =
   AuthenticatedDespensaStockIndexRouteImport.update({
     id: '/',
@@ -108,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/despensa/importar': typeof AuthenticatedDespensaImportarRoute
   '/despensa/stock': typeof AuthenticatedDespensaStockRouteWithChildren
@@ -122,6 +130,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/despensa/importar': typeof AuthenticatedDespensaImportarRoute
   '/despensa': typeof AuthenticatedDespensaIndexRoute
@@ -138,6 +147,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/_authenticated/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/_authenticated/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/_authenticated/despensa/importar': typeof AuthenticatedDespensaImportarRoute
   '/_authenticated/despensa/stock': typeof AuthenticatedDespensaStockRouteWithChildren
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/despensa'
+    | '/despensa/auditoria'
     | '/despensa/exportar'
     | '/despensa/importar'
     | '/despensa/stock'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/despensa/auditoria'
     | '/despensa/exportar'
     | '/despensa/importar'
     | '/despensa'
@@ -184,6 +196,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/despensa'
+    | '/_authenticated/despensa/auditoria'
     | '/_authenticated/despensa/exportar'
     | '/_authenticated/despensa/importar'
     | '/_authenticated/despensa/stock'
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/exportar'
       fullPath: '/despensa/exportar'
       preLoaderRoute: typeof AuthenticatedDespensaExportarRouteImport
+      parentRoute: typeof AuthenticatedDespensaRoute
+    }
+    '/_authenticated/despensa/auditoria': {
+      id: '/_authenticated/despensa/auditoria'
+      path: '/auditoria'
+      fullPath: '/despensa/auditoria'
+      preLoaderRoute: typeof AuthenticatedDespensaAuditoriaRouteImport
       parentRoute: typeof AuthenticatedDespensaRoute
     }
     '/_authenticated/despensa/stock/': {
@@ -340,6 +360,7 @@ const AuthenticatedDespensaProductosProductIdRouteWithChildren =
   )
 
 interface AuthenticatedDespensaRouteChildren {
+  AuthenticatedDespensaAuditoriaRoute: typeof AuthenticatedDespensaAuditoriaRoute
   AuthenticatedDespensaExportarRoute: typeof AuthenticatedDespensaExportarRoute
   AuthenticatedDespensaImportarRoute: typeof AuthenticatedDespensaImportarRoute
   AuthenticatedDespensaStockRoute: typeof AuthenticatedDespensaStockRouteWithChildren
@@ -349,6 +370,7 @@ interface AuthenticatedDespensaRouteChildren {
 }
 
 const AuthenticatedDespensaRouteChildren: AuthenticatedDespensaRouteChildren = {
+  AuthenticatedDespensaAuditoriaRoute: AuthenticatedDespensaAuditoriaRoute,
   AuthenticatedDespensaExportarRoute: AuthenticatedDespensaExportarRoute,
   AuthenticatedDespensaImportarRoute: AuthenticatedDespensaImportarRoute,
   AuthenticatedDespensaStockRoute: AuthenticatedDespensaStockRouteWithChildren,
@@ -384,3 +406,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
