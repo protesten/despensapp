@@ -1,10 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeCategory, similarity } from "@/lib/normalize";
+import {
+  classifyNutritionRelevance,
+  type NutritionRelevance,
+} from "@/lib/nutrition-relevance";
 
 export interface MissingNutritionItem {
   product_id: string;
   name: string;
   brand: string | null;
+  category: string | null;
+  nutrition_relevance: NutritionRelevance; // efectiva (resuelta)
+  manual_override: NutritionRelevance | null; // lo que hay en BD (null si automática)
 }
 
 export interface DirtyCategoryItem {
@@ -28,7 +35,8 @@ export interface DuplicateCandidate {
 }
 
 export interface AuditReport {
-  missing_nutrition: MissingNutritionItem[];
+  missing_nutrition_critical: MissingNutritionItem[];
+  missing_nutrition_optional: MissingNutritionItem[];
   dirty_categories: DirtyCategoryItem[];
   incoherent_source: IncoherentSourceItem[];
   duplicates: DuplicateCandidate[];
@@ -43,12 +51,13 @@ export async function auditPantry(): Promise<AuditReport> {
   const { data: products, error } = await supabase
     .from("products")
     .select(
-      "id, name, brand, category, source, nutrition_source_type, product_nutrition(kcal_per_100g, kcal_per_100ml, protein_per_100g, protein_per_100ml, carbs_per_100g, carbs_per_100ml, fat_per_100g, fat_per_100ml)",
+      "id, name, brand, category, source, nutrition_source_type, nutrition_relevance, product_nutrition(kcal_per_100g, kcal_per_100ml, protein_per_100g, protein_per_100ml, carbs_per_100g, carbs_per_100ml, fat_per_100g, fat_per_100ml)",
     );
 
   if (error) throw new Error(error.message);
 
-  const missing_nutrition: MissingNutritionItem[] = [];
+  const missing_nutrition_critical: MissingNutritionItem[] = [];
+  const missing_nutrition_optional: MissingNutritionItem[] = [];
   const dirty_categories: DirtyCategoryItem[] = [];
   const incoherent_source: IncoherentSourceItem[] = [];
 
@@ -66,12 +75,28 @@ export async function auditPantry(): Promise<AuditReport> {
         n.carbs_per_100ml != null ||
         n.fat_per_100g != null ||
         n.fat_per_100ml != null);
+
     if (!hasAnyNutrition) {
-      missing_nutrition.push({
+      const manualOverride = (p as any).nutrition_relevance as NutritionRelevance | null;
+      const relevance = classifyNutritionRelevance({
+        name: p.name,
+        category: p.category,
+        nutrition_relevance: manualOverride,
+      });
+      const item: MissingNutritionItem = {
         product_id: p.id,
         name: p.name,
         brand: p.brand,
-      });
+        category: p.category,
+        nutrition_relevance: relevance,
+        manual_override: manualOverride ?? null,
+      };
+      if (relevance === "required") {
+        missing_nutrition_critical.push(item);
+      } else if (relevance === "optional") {
+        missing_nutrition_optional.push(item);
+      }
+      // ignore → no aparece en ninguna lista
     }
 
     if (p.category) {
@@ -121,7 +146,8 @@ export async function auditPantry(): Promise<AuditReport> {
   duplicates.sort((x, y) => y.score - x.score);
 
   return {
-    missing_nutrition,
+    missing_nutrition_critical,
+    missing_nutrition_optional,
     dirty_categories,
     incoherent_source,
     duplicates: duplicates.slice(0, 50),
@@ -183,6 +209,22 @@ export async function fixSourceCoherence(): Promise<{ updated: number }> {
   }
 
   return { updated };
+}
+
+/**
+ * Establece (o limpia) el override manual de nutrition_relevance para un producto.
+ * Pasar `null` resetea al cálculo automático.
+ */
+export async function setProductRelevance(
+  productId: string,
+  value: NutritionRelevance | null,
+): Promise<{ success: boolean }> {
+  const { error } = await supabase
+    .from("products")
+    .update({ nutrition_relevance: value } as any)
+    .eq("id", productId);
+  if (error) throw new Error(error.message);
+  return { success: true };
 }
 
 /**
