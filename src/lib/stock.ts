@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import type { ProductNutrition } from "@/lib/products";
 
 export type StockItem = Tables<"stock_items">;
@@ -203,12 +203,9 @@ export async function createMovement(form: MovementFormData): Promise<void> {
   const pkgSize = Number(prodSizes?.package_size_value ?? 0);
   const srvSize = Number(prodSizes?.serving_size_value ?? 0);
 
-  const updatePayload: TablesInsert<"stock_items"> = {
-    product_id: form.product_id,
-    user_id: userId,
+  const updatePayload: TablesUpdate<"stock_items"> = {
     quantity: newQuantity,
-    status: newStatus as TablesInsert<"stock_items">["status"],
-    unit: form.unit as TablesInsert<"stock_items">["unit"],
+    status: newStatus as TablesUpdate<"stock_items">["status"],
   };
   if (pkgSize > 0) updatePayload.package_count = newQuantity / pkgSize;
   if (srvSize > 0) updatePayload.serving_count = newQuantity / srvSize;
