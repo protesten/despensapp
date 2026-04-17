@@ -90,7 +90,8 @@ function EditProductPage() {
     <div className="min-h-screen bg-background">
       <AppHeader
         title="Editar producto"
-        backTo={`/despensa/productos/${productId}` as any}
+        backTo="/despensa/productos/$productId"
+        backParams={{ productId }}
         backLabel="← Volver"
       />
       <main className="p-4 max-w-2xl mx-auto">
