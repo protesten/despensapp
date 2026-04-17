@@ -315,12 +315,55 @@ export async function exportConsolidated(): Promise<ConsolidatedExport> {
     });
   }
 
-  // Ordenar por nombre
+  // Ordenar productos por nombre
   products.sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+  // ───────────────────────────────────────────────────────────────────
+  // Bloque DETALLADO por stock_item (para que la IA NO invente IDs)
+  // ───────────────────────────────────────────────────────────────────
+  const stockItemsDetailed: DetailedStockItemForAI[] = [];
+  for (const [, items] of groups) {
+    // Priorizar: opened > nearest expiry > created_at
+    const sorted = [...items].sort((a: any, b: any) => {
+      const aOpen = a.open_status === "opened" ? 0 : 1;
+      const bOpen = b.open_status === "opened" ? 0 : 1;
+      if (aOpen !== bOpen) return aOpen - bOpen;
+
+      const aExp = a.expiration_date ? new Date(a.expiration_date).getTime() : Infinity;
+      const bExp = b.expiration_date ? new Date(b.expiration_date).getTime() : Infinity;
+      if (aExp !== bExp) return aExp - bExp;
+
+      const aCre = new Date(a.created_at).getTime();
+      const bCre = new Date(b.created_at).getTime();
+      return aCre - bCre;
+    });
+
+    sorted.forEach((it: any, idx: number) => {
+      stockItemsDetailed.push({
+        stock_item_id: it.id,
+        product_id: it.product_id,
+        name: it.products?.name ?? "",
+        brand: it.products?.brand ?? null,
+        quantity: Number(it.quantity),
+        unit: it.unit,
+        location: it.location ?? null,
+        expiration_date: it.expiration_date ?? null,
+        open_status: it.open_status ?? null,
+        use_priority: idx + 1,
+      });
+    });
+  }
+
+  // Orden global por nombre + prioridad para legibilidad
+  stockItemsDetailed.sort((a, b) => {
+    const n = a.name.localeCompare(b.name, "es");
+    return n !== 0 ? n : a.use_priority - b.use_priority;
+  });
 
   return {
     exported_at: new Date().toISOString(),
     product_count: products.length,
     products,
+    stock_items: stockItemsDetailed,
   };
 }
