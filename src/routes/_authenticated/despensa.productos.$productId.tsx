@@ -1,11 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchProduct, deleteProduct, type ProductWithNutrition, SOURCE_OPTIONS } from "@/lib/products";
 import { MacroBadges, NutritionTable } from "@/components/products/NutritionDisplay";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/productos/$productId")({
@@ -56,12 +55,10 @@ function ProductDetailPage() {
           ← Productos
         </Button>
         <div className="flex gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate({ to: "/despensa/productos/$productId/editar", params: { productId: p.id } })}
-          >
-            ✏️ Editar
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/despensa/productos/$productId/editar" params={{ productId: p.id }}>
+              ✏️ Editar
+            </Link>
           </Button>
           <Button size="sm" variant="destructive" onClick={handleDelete}>Eliminar</Button>
         </div>
