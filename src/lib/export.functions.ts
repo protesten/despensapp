@@ -132,10 +132,26 @@ export interface ConsolidatedProduct {
   source_coherent: boolean;
 }
 
+export interface DetailedStockItemForAI {
+  stock_item_id: string;
+  product_id: string;
+  name: string;
+  brand: string | null;
+  quantity: number;
+  unit: string;
+  location: string | null;
+  expiration_date: string | null;
+  open_status: string | null;
+  /** Prioridad de uso (1 = preferido). Calculada: opened > nearest expiry > created_at. */
+  use_priority: number;
+}
+
 export interface ConsolidatedExport {
   exported_at: string;
   product_count: number;
   products: ConsolidatedProduct[];
+  /** Lista detallada por stock_item — fuente de verdad para los IDs que la IA debe usar. */
+  stock_items: DetailedStockItemForAI[];
 }
 
 /**
