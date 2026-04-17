@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ConsolidatedStockItem } from "./export-import.schemas";
 import { normalizeCategory, convertUnit, canonicalUnit, type Unit } from "./normalize";
+import {
+  classifyNutritionRelevance,
+  type NutritionRelevance,
+} from "./nutrition-relevance";
 
 export async function exportProducts() {
   const { data, error } = await supabase
@@ -120,6 +124,9 @@ export interface ConsolidatedProduct {
   carbs_per_100: number | null;
   fat_per_100: number | null;
   nutrition_complete: boolean;
+  // Relevancia para macros
+  nutrition_relevance: NutritionRelevance;
+  counts_for_macros: boolean;
   // Coherencia
   source: string | null;
   source_coherent: boolean;
@@ -150,7 +157,7 @@ export async function exportConsolidated(): Promise<ConsolidatedExport> {
   const { data, error } = await supabase
     .from("stock_items")
     .select(
-      "*, products(id, name, brand, category, default_unit, source, nutrition_source_type, product_nutrition(kcal_per_100g, kcal_per_100ml, protein_per_100g, protein_per_100ml, carbs_per_100g, carbs_per_100ml, fat_per_100g, fat_per_100ml))",
+      "*, products(id, name, brand, category, default_unit, source, nutrition_source_type, nutrition_relevance, product_nutrition(kcal_per_100g, kcal_per_100ml, protein_per_100g, protein_per_100ml, carbs_per_100g, carbs_per_100ml, fat_per_100g, fat_per_100ml))",
     )
     .neq("status", "consumed");
 
@@ -259,6 +266,12 @@ export async function exportConsolidated(): Promise<ConsolidatedExport> {
       quantity_by_unit[u] = Math.round(byUnit[u] * 100) / 100;
     }
 
+    const relevance = classifyNutritionRelevance({
+      name: p.name,
+      category: p.category,
+      nutrition_relevance: (p as any).nutrition_relevance ?? null,
+    });
+
     products.push({
       product_id,
       name: p.name,
@@ -279,6 +292,8 @@ export async function exportConsolidated(): Promise<ConsolidatedExport> {
       carbs_per_100: carbs,
       fat_per_100: fat,
       nutrition_complete,
+      nutrition_relevance: relevance,
+      counts_for_macros: relevance !== "ignore",
       source: authority,
       source_coherent,
     });

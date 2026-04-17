@@ -97,6 +97,7 @@ REGLAS:
 4. Prioriza productos abiertos (open_status = "opened").
 5. Equilibra macronutrientes usando los datos nutricionales proporcionados.
 6. Respeta alérgenos y suitability_tags si los hay.
+7. Cada producto incluye \`counts_for_macros\`. Si es \`false\`, el producto puede usarse como ingrediente en la receta pero NO debe sumarse al \`resumen_nutricional\` principal.
 
 FORMATO DE RESPUESTA:
 Responde SOLO con un JSON válido con esta estructura exacta:
