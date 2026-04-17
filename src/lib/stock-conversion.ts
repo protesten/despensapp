@@ -1,13 +1,11 @@
-import type { Product } from "@/lib/products";
-
 export type TrackingMode = "bulk" | "package" | "serving";
 
 export interface ProductSizeFields {
-  default_unit: Product["default_unit"] | null;
-  package_size_value: number | null;
-  package_size_unit: Product["package_size_unit"] | null;
-  serving_size_value: number | null;
-  serving_size_unit: Product["serving_size_unit"] | null;
+  default_unit?: string | null;
+  package_size_value?: number | null;
+  package_size_unit?: string | null;
+  serving_size_value?: number | null;
+  serving_size_unit?: string | null;
 }
 
 export interface ModeAvailability {
