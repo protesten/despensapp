@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +19,6 @@ export const Route = createFileRoute("/_authenticated/despensa/auditoria")({
 });
 
 function AuditPage() {
-  const auditFn = useServerFn(auditPantry);
-  const normalizeFn = useServerFn(applyCategoryNormalization);
-  const fixSourceFn = useServerFn(fixSourceCoherence);
-  const mergeFn = useServerFn(mergeProducts);
-
   const [report, setReport] = useState<AuditReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
