@@ -1,70 +1,45 @@
 
+El usuario quiere poder editar un `stock_item` existente (ubicación, fechas, coste, estado de apertura, modo de tracking), no el producto maestro. Hoy solo se puede borrar y recrear.
 
 ## Plan
 
-### Parte A — Bug "no encuentro botón Editar"
+### 1. Nueva función `updateStockItem` en `src/lib/stock.ts`
+Función que recibe `id` + campos editables y hace `UPDATE` sobre `stock_items`. Campos editables:
+- `location`
+- `purchase_date`
+- `expiration_date`
+- `unit_cost`
+- `open_status` (al pasar a `opened` por primera vez, setear `opened_at = now()`)
+- `tracking_mode`
+- `quantity` (con resync de `package_count` / `serving_count` según el producto)
 
-Existe una ruta `/despensa/productos/$productId/editar` totalmente funcional, pero el botón Editar solo aparece dentro del detalle del producto, no es descubrible.
+Importante: NO crea movimiento de inventario. Es una rectificación de datos del propio stock, no un consumo. Si el usuario quiere ajustar cantidad como movimiento auditable, ya tiene "Ajuste" en el menú.
 
-**Cambios:**
+### 2. Nueva ruta `src/routes/_authenticated/despensa.stock.$stockItemId.editar.tsx`
+Pantalla similar a `despensa.stock.nuevo.tsx` pero:
+- Producto en modo solo lectura (mostrar nombre/marca, no permitir cambiarlo — para cambiar de producto, borrar y recrear)
+- Carga datos actuales del `stock_item` + producto
+- Formulario con todos los campos editables listados arriba, con el mismo selector de modo (`bulk` / `package` / `serving`) y previsualización de equivalencia que ya tiene `nuevo`
+- Botones: Guardar / Cancelar
 
-1. **Lista productos (`despensa.index.tsx`)**: añadir botón ✏️ Editar al lado del ✕ en cada Card.
-2. **Detalle producto (`despensa.productos.$productId.tsx`)**: ya tiene el botón — verificar que sigue visible (sí lo está).
-3. **Lista stock (`despensa.stock.index.tsx`)**: en el `ActionMenu` de cada item añadir entrada "✏️ Editar producto" que navega a `/despensa/productos/$productId/editar` con el `product_id` del stock.
+Reutiliza el mismo bloque de UI del selector de modo extrayendo lo mínimo necesario; si el coste es alto, se duplica de forma controlada.
 
-### Parte B — Stock por envases / porciones
+### 3. Discoverabilidad — entrada en el menú de acciones
+En `despensa.stock.index.tsx`, dentro del `ActionMenu`, añadir entrada **"✏️ Editar stock"** justo encima de "Editar producto", que navega a la nueva ruta `/despensa/stock/$stockItemId/editar`.
 
-**Modelo de datos (migración)**: añadir a `stock_items` tres columnas para soportar modo dual:
-- `tracking_mode` enum (`bulk` | `package` | `serving`) — cómo prefiere el usuario contar este stock.
-- `package_count` numeric nullable — número de envases actuales (cuando aplica).
-- `serving_count` numeric nullable — número de porciones actuales (cuando aplica).
+Mantener "Editar producto" como entrada separada — son dos cosas distintas y ambas son útiles.
 
-`quantity` + `unit` siguen siendo la fuente de verdad canónica (en g/ml/unit). Los campos `package_count`/`serving_count` se derivan/sincronizan automáticamente desde `quantity` usando `package_size_value` y `serving_size_value` del producto.
-
-**Lógica de conversión (nuevo `src/lib/stock-conversion.ts`)**:
-- `toBulk(count, mode, product)` → cantidad en unidad base (12 envases × 1000ml = 12000ml).
-- `fromBulk(quantity, mode, product)` → cuenta de envases o porciones.
-- Validaciones: solo permitir modo `package` si el producto tiene `package_size_value` y unidad compatible; igual para `serving`.
-
-**UI añadir stock (`despensa.stock.nuevo.tsx`)**:
-
-Cuando el producto seleccionado tiene `package_size_value` y/o `serving_size_value`, mostrar un selector de modo:
-
-```text
-¿Cómo cuentas este stock?
-( ) 12 envases (1000 ml c/u) → 12 000 ml
-( ) 400 porciones (30 g c/u) → 12 000 g
-( ) Cantidad bruta en ml/g
-```
-
-Input principal cambia su label dinámicamente ("Envases", "Porciones", "Cantidad"). Debajo, texto pequeño con la equivalencia calculada en tiempo real. Internamente siempre se guarda `quantity` en bruto + el modo elegido.
-
-**UI consumir/movimiento (`MovementDialog.tsx`)**:
-
-Si `tracking_mode` del stock es `package` o `serving`, mostrar el input en esa unidad ("consumir 1 envase", "consumir 2 porciones") con equivalencia visible ("= 1000 ml"). Internamente se convierte a bulk antes de llamar a `createMovement`.
-
-**Visualización (lista stock)**:
-
-Mostrar la cantidad principal en el modo elegido más la equivalencia entre paréntesis:
-- `12 envases (12 000 ml)` 
-- `8 porciones (240 g)`
-- `500 g` (modo bulk)
+### 4. Notas semánticas
+- Cambiar `quantity` aquí NO genera movimiento. Documentado en la UI con un texto pequeño: "Para registrar consumo o merma usa el menú de acciones. Esta pantalla solo corrige errores de introducción."
+- Cambiar `tracking_mode` recalcula `package_count`/`serving_count` desde `quantity` + sizes del producto.
+- Si `open_status` cambia de `sealed` → `opened` y `opened_at` está vacío, lo seteamos automáticamente a `now()`.
 
 ### Archivos tocados
 
 | Archivo | Cambio |
 |---|---|
-| Migración SQL | Enum `tracking_mode_type` + columnas en `stock_items` |
-| `src/lib/stock-conversion.ts` | **Nuevo** — funciones puras de conversión |
-| `src/lib/stock.ts` | `StockFormData` + `MovementFormData` con `tracking_mode`, `createStockItem` y `createMovement` aceptan modo |
-| `src/routes/_authenticated/despensa.index.tsx` | Botón ✏️ Editar en cada card |
-| `src/routes/_authenticated/despensa.stock.nuevo.tsx` | Selector de modo + equivalencias en vivo |
-| `src/routes/_authenticated/despensa.stock.index.tsx` | Mostrar cantidad en modo + equivalencia + entrada "Editar producto" en menú |
-| `src/components/stock/MovementDialog.tsx` | Input en unidad del modo + equivalencia |
+| `src/lib/stock.ts` | Añadir `updateStockItem(id, patch)` |
+| `src/routes/_authenticated/despensa.stock.$stockItemId.editar.tsx` | **Nuevo** — formulario de edición |
+| `src/routes/_authenticated/despensa.stock.index.tsx` | Añadir entrada "✏️ Editar stock" en `ActionMenu` |
 
-### Notas
-
-- Stock existente queda automáticamente como `tracking_mode = 'bulk'` (default en migración) — comportamiento actual preservado.
-- Si el producto no define `package_size_value`/`serving_size_value`, los modos correspondientes quedan deshabilitados con tooltip "Define el tamaño del envase en el producto".
-- Edición posterior del producto que cambie `package_size_value` no recalcula stocks históricos (se respeta `quantity` original).
-
+Sin migración de DB — todos los campos ya existen.
