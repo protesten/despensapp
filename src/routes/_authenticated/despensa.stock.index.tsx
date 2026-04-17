@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -87,6 +88,7 @@ function StockIndexPage() {
   const [items, setItems] = useState<StockItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LocationFilter>("all");
+  const [search, setSearch] = useState("");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogItem, setDialogItem] = useState<StockItemWithProduct | null>(null);
@@ -106,9 +108,15 @@ function StockIndexPage() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = filter === "all" ? items : items.filter((i) => i.location === filter);
+  const filtered = filter === "all" 
+    ? items 
+    : items.filter((i) => i.location === filter);
 
-  const grouped = filtered.reduce<Record<string, StockItemWithProduct[]>>((acc, item) => {
+  const searched = search.trim()
+    ? filtered.filter((i) => i.products.name.toLowerCase().includes(search.toLowerCase()))
+    : filtered;
+
+  const grouped = searched.reduce<Record<string, StockItemWithProduct[]>>((acc, item) => {
     const loc = item.location ?? "other";
     if (!acc[loc]) acc[loc] = [];
     acc[loc].push(item);
@@ -163,28 +171,37 @@ function StockIndexPage() {
           </Button>
         </div>
 
-        <div className="flex gap-1.5 flex-wrap">
-          {(["all", "pantry", "fridge", "freezer", "other"] as const).map((loc) => (
-            <Button
-              key={loc}
-              variant={filter === loc ? "default" : "outline"}
-              size="sm"
-              className="text-xs"
-              onClick={() => setFilter(loc)}
-            >
-              {loc === "all" ? "Todas" : LOCATION_LABELS[loc]}
-            </Button>
-          ))}
+        <div className="flex flex-col gap-3">
+          <Input
+            placeholder="Buscar por nombre de producto..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="flex gap-1.5 flex-wrap">
+            {(["all", "pantry", "fridge", "freezer", "other"] as const).map((loc) => (
+              <Button
+                key={loc}
+                variant={filter === loc ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+                onClick={() => setFilter(loc)}
+              >
+                {loc === "all" ? "Todas" : LOCATION_LABELS[loc]}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
           <p className="text-center text-muted-foreground py-8">Cargando...</p>
-        ) : filtered.length === 0 ? (
+        ) : searched.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">
               {items.length === 0
                 ? "No tienes stock. ¡Añade el primero!"
-                : "Sin resultados en esta ubicación."}
+                : search.trim()
+                  ? "No se encontraron productos con ese nombre."
+                  : "Sin resultados en esta ubicación."}
             </p>
             {items.length === 0 && (
               <Button asChild>
