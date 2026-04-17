@@ -113,11 +113,61 @@ function ExportPage() {
 
         <h2 className="text-xl font-bold">Exportar datos</h2>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "general" | "ia")}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "general" | "ia" | "tabla")}>
           <TabsList className="w-full">
             <TabsTrigger value="ia" className="flex-1">🤖 Para IA</TabsTrigger>
+            <TabsTrigger value="tabla" className="flex-1">📊 Tabla</TabsTrigger>
             <TabsTrigger value="general" className="flex-1">📦 General</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="tabla" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Exportar stock a CSV o Excel</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Descarga tu stock actual (sin items consumidos) en formato tabular para
+                  abrirlo en Excel, Google Sheets, Numbers o cualquier hoja de cálculo.
+                </p>
+
+                <div className="bg-muted rounded-lg p-3 space-y-2">
+                  <p className="text-xs font-medium">📋 Columnas incluidas:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Producto, marca, cantidad, unidad</li>
+                    <li>Ubicación, estado, apertura</li>
+                    <li>Fechas de compra y caducidad</li>
+                    <li>Coste unitario, modo de seguimiento</li>
+                    <li>Envases, raciones, fecha de apertura y creación</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    className="w-full"
+                    onClick={() => handleExportTabular("xlsx")}
+                    disabled={loading}
+                  >
+                    📊 Excel (.xlsx)
+                  </Button>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => handleExportTabular("csv")}
+                    disabled={loading}
+                  >
+                    📄 CSV
+                  </Button>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  💡 El CSV usa <code className="bg-muted px-1 rounded">;</code> como separador
+                  y BOM UTF-8 para mostrar correctamente tildes y eñes en Excel.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
 
           <TabsContent value="ia" className="space-y-4 mt-4">
             <Card>
