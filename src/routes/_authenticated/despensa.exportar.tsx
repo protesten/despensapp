@@ -10,7 +10,12 @@ import {
   exportMovements,
   exportConsolidated,
 } from "@/lib/export.functions";
-import { exportStockToCSV, exportStockToXLSX } from "@/lib/export-tabular";
+import {
+  exportStockToCSV,
+  exportStockToXLSX,
+  exportConsolidatedToCSV,
+  exportConsolidatedToXLSX,
+} from "@/lib/export-tabular";
 import { AI_PROMPT_TEMPLATE, AI_RESPONSE_FORMAT_EXAMPLE } from "@/lib/export-import.schemas";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppNav } from "@/components/layout/AppNav";
