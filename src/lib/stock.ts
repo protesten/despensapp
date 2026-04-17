@@ -203,9 +203,12 @@ export async function createMovement(form: MovementFormData): Promise<void> {
   const pkgSize = Number(prodSizes?.package_size_value ?? 0);
   const srvSize = Number(prodSizes?.serving_size_value ?? 0);
 
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: TablesInsert<"stock_items"> = {
+    product_id: form.product_id,
+    user_id: userId,
     quantity: newQuantity,
     status: newStatus as TablesInsert<"stock_items">["status"],
+    unit: form.unit as TablesInsert<"stock_items">["unit"],
   };
   if (pkgSize > 0) updatePayload.package_count = newQuantity / pkgSize;
   if (srvSize > 0) updatePayload.serving_count = newQuantity / srvSize;
