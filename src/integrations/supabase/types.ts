@@ -191,6 +191,9 @@ export type Database = {
           ingredients_text: string | null
           name: string
           nutrition_confidence: number | null
+          nutrition_relevance:
+            | Database["public"]["Enums"]["nutrition_relevance_type"]
+            | null
           nutrition_source_name: string | null
           nutrition_source_reference_id: string | null
           nutrition_source_type:
@@ -222,6 +225,9 @@ export type Database = {
           ingredients_text?: string | null
           name: string
           nutrition_confidence?: number | null
+          nutrition_relevance?:
+            | Database["public"]["Enums"]["nutrition_relevance_type"]
+            | null
           nutrition_source_name?: string | null
           nutrition_source_reference_id?: string | null
           nutrition_source_type?:
@@ -253,6 +259,9 @@ export type Database = {
           ingredients_text?: string | null
           name?: string
           nutrition_confidence?: number | null
+          nutrition_relevance?:
+            | Database["public"]["Enums"]["nutrition_relevance_type"]
+            | null
           nutrition_source_name?: string | null
           nutrition_source_reference_id?: string | null
           nutrition_source_type?:
@@ -367,6 +376,7 @@ export type Database = {
         | "adjustment"
         | "waste"
         | "expiry"
+      nutrition_relevance_type: "required" | "optional" | "ignore"
       nutrition_source_type:
         | "label"
         | "openfoodfacts"
@@ -512,6 +522,7 @@ export const Constants = {
         "waste",
         "expiry",
       ],
+      nutrition_relevance_type: ["required", "optional", "ignore"],
       nutrition_source_type: [
         "label",
         "openfoodfacts",
