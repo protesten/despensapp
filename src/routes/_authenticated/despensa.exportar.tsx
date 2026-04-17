@@ -10,7 +10,12 @@ import {
   exportMovements,
   exportConsolidated,
 } from "@/lib/export.functions";
-import { exportStockToCSV, exportStockToXLSX } from "@/lib/export-tabular";
+import {
+  exportStockToCSV,
+  exportStockToXLSX,
+  exportConsolidatedToCSV,
+  exportConsolidatedToXLSX,
+} from "@/lib/export-tabular";
 import { AI_PROMPT_TEMPLATE, AI_RESPONSE_FORMAT_EXAMPLE } from "@/lib/export-import.schemas";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppNav } from "@/components/layout/AppNav";
@@ -104,6 +109,23 @@ function ExportPage() {
     }
   };
 
+  const handleExportConsolidatedTabular = async (fmt: "csv" | "xlsx") => {
+    setLoading(true);
+    setLabel(fmt === "csv" ? "Consolidado CSV" : "Consolidado Excel");
+    setItemCount(null);
+    setResult("");
+    try {
+      const count =
+        fmt === "csv" ? await exportConsolidatedToCSV() : await exportConsolidatedToXLSX();
+      setItemCount(count);
+      toast.success(`${count} productos exportados a ${fmt.toUpperCase()}`);
+    } catch (e: any) {
+      toast.error(`Error al exportar: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showUser />
@@ -166,8 +188,49 @@ function ExportPage() {
                 </p>
               </CardContent>
             </Card>
-          </TabsContent>
 
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Exportar consolidado por producto</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Una fila por producto con totales agregados, ubicaciones, caducidad más
+                  próxima y datos nutricionales por 100 g/ml.
+                </p>
+
+                <div className="bg-muted rounded-lg p-3 space-y-2">
+                  <p className="text-xs font-medium">📋 Columnas incluidas:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Producto, marca, categoría</li>
+                    <li>Cantidad total + desglose por g / ml / unidades</li>
+                    <li>Ubicaciones, envases abiertos/cerrados, total items</li>
+                    <li>Caducidad próxima y si todo está caducado</li>
+                    <li>Nutrición por 100 (kcal, proteínas, HC, grasas)</li>
+                    <li>Relevancia, fuente y coherencia de datos</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    className="w-full"
+                    onClick={() => handleExportConsolidatedTabular("xlsx")}
+                    disabled={loading}
+                  >
+                    📊 Excel (.xlsx)
+                  </Button>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => handleExportConsolidatedTabular("csv")}
+                    disabled={loading}
+                  >
+                    📄 CSV
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="ia" className="space-y-4 mt-4">
             <Card>
