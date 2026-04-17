@@ -25,7 +25,7 @@ function ExportPage() {
   const [loading, setLoading] = useState(false);
   const [label, setLabel] = useState("");
   const [itemCount, setItemCount] = useState<number | null>(null);
-  const [tab, setTab] = useState<"general" | "ia">("ia");
+  const [tab, setTab] = useState<"general" | "ia" | "tabla">("ia");
 
   const doExport = async (fn: () => Promise<any>, name: string) => {
     setLoading(true);
