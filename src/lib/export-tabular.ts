@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { exportStockDetailed } from "./export.functions";
+import { exportStockDetailed, exportConsolidated, type ConsolidatedProduct } from "./export.functions";
 import { LOCATION_LABELS, STATUS_LABELS, OPEN_STATUS_LABELS } from "./stock";
 
 export interface StockRow {
