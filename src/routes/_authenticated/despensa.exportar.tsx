@@ -75,10 +75,10 @@ function ExportPage() {
     setItemCount(null);
     try {
       const data = await exportConsolidated();
-      setItemCount(data.item_count);
+      setItemCount(data.product_count);
       const fullPrompt = AI_PROMPT_TEMPLATE + JSON.stringify(data, null, 2);
       setResult(fullPrompt);
-      toast.success(`Inventario exportado: ${data.item_count} items`);
+      toast.success(`Inventario exportado: ${data.product_count} productos`);
     } catch (e: any) {
       setResult(`Error: ${e.message}`);
       toast.error(`Error al exportar: ${e.message}`);
