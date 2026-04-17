@@ -309,10 +309,13 @@ export type Database = {
           location: Database["public"]["Enums"]["location_type"] | null
           open_status: Database["public"]["Enums"]["open_status_type"] | null
           opened_at: string | null
+          package_count: number | null
           product_id: string
           purchase_date: string | null
           quantity: number
+          serving_count: number | null
           status: Database["public"]["Enums"]["stock_status"] | null
+          tracking_mode: Database["public"]["Enums"]["tracking_mode_type"]
           unit: Database["public"]["Enums"]["unit_type"]
           unit_cost: number | null
           updated_at: string
@@ -325,10 +328,13 @@ export type Database = {
           location?: Database["public"]["Enums"]["location_type"] | null
           open_status?: Database["public"]["Enums"]["open_status_type"] | null
           opened_at?: string | null
+          package_count?: number | null
           product_id: string
           purchase_date?: string | null
           quantity: number
+          serving_count?: number | null
           status?: Database["public"]["Enums"]["stock_status"] | null
+          tracking_mode?: Database["public"]["Enums"]["tracking_mode_type"]
           unit?: Database["public"]["Enums"]["unit_type"]
           unit_cost?: number | null
           updated_at?: string
@@ -341,10 +347,13 @@ export type Database = {
           location?: Database["public"]["Enums"]["location_type"] | null
           open_status?: Database["public"]["Enums"]["open_status_type"] | null
           opened_at?: string | null
+          package_count?: number | null
           product_id?: string
           purchase_date?: string | null
           quantity?: number
+          serving_count?: number | null
           status?: Database["public"]["Enums"]["stock_status"] | null
+          tracking_mode?: Database["public"]["Enums"]["tracking_mode_type"]
           unit?: Database["public"]["Enums"]["unit_type"]
           unit_cost?: number | null
           updated_at?: string
@@ -385,6 +394,7 @@ export type Database = {
         | "ai_estimate"
       open_status_type: "sealed" | "opened"
       stock_status: "available" | "low" | "expired" | "consumed"
+      tracking_mode_type: "bulk" | "package" | "serving"
       unit_type: "g" | "ml" | "unit" | "kg" | "l"
     }
     CompositeTypes: {
@@ -532,6 +542,7 @@ export const Constants = {
       ],
       open_status_type: ["sealed", "opened"],
       stock_status: ["available", "low", "expired", "consumed"],
+      tracking_mode_type: ["bulk", "package", "serving"],
       unit_type: ["g", "ml", "unit", "kg", "l"],
     },
   },
