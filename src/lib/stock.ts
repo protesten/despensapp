@@ -229,6 +229,89 @@ export async function fetchMovements(stockItemId: string): Promise<MovementWithP
   return (data ?? []) as unknown as MovementWithProduct[];
 }
 
+export interface StockItemUpdate {
+  location?: string;
+  purchase_date?: string | null;
+  expiration_date?: string | null;
+  unit_cost?: number | null;
+  open_status?: string;
+  tracking_mode?: "bulk" | "package" | "serving";
+  quantity?: number;
+  unit?: string;
+}
+
+export async function updateStockItem(id: string, patch: StockItemUpdate): Promise<void> {
+  // Fetch current item to detect open_status transition and to get product_id for resync
+  const { data: current, error: fetchErr } = await supabase
+    .from("stock_items")
+    .select("open_status, opened_at, product_id, quantity, tracking_mode")
+    .eq("id", id)
+    .single();
+  if (fetchErr || !current) throw new Error("Stock no encontrado");
+
+  const update: TablesUpdate<"stock_items"> = {};
+
+  if (patch.location !== undefined) {
+    update.location = patch.location as TablesUpdate<"stock_items">["location"];
+  }
+  if (patch.purchase_date !== undefined) update.purchase_date = patch.purchase_date;
+  if (patch.expiration_date !== undefined) update.expiration_date = patch.expiration_date;
+  if (patch.unit_cost !== undefined) update.unit_cost = patch.unit_cost;
+  if (patch.unit !== undefined) {
+    update.unit = patch.unit as TablesUpdate<"stock_items">["unit"];
+  }
+
+  if (patch.open_status !== undefined) {
+    update.open_status = patch.open_status as TablesUpdate<"stock_items">["open_status"];
+    // Auto-set opened_at on first open
+    if (patch.open_status === "opened" && current.open_status !== "opened" && !current.opened_at) {
+      update.opened_at = new Date().toISOString();
+    }
+  }
+
+  if (patch.tracking_mode !== undefined) {
+    update.tracking_mode = patch.tracking_mode as TablesUpdate<"stock_items">["tracking_mode"];
+  }
+
+  // Resolve final values for derived counts
+  const finalQuantity = patch.quantity !== undefined ? patch.quantity : Number(current.quantity);
+  const finalMode = patch.tracking_mode ?? current.tracking_mode;
+
+  if (patch.quantity !== undefined) {
+    update.quantity = patch.quantity;
+  }
+
+  // Resync derived counts whenever quantity or mode changes
+  if (patch.quantity !== undefined || patch.tracking_mode !== undefined) {
+    const { data: prodSizes } = await supabase
+      .from("products")
+      .select("package_size_value, serving_size_value")
+      .eq("id", current.product_id)
+      .single();
+
+    const pkgSize = Number(prodSizes?.package_size_value ?? 0);
+    const srvSize = Number(prodSizes?.serving_size_value ?? 0);
+
+    update.package_count = pkgSize > 0 ? finalQuantity / pkgSize : null;
+    update.serving_count = srvSize > 0 ? finalQuantity / srvSize : null;
+
+    // Recompute status if quantity changed
+    if (patch.quantity !== undefined) {
+      if (finalQuantity === 0) {
+        update.status = "consumed" as TablesUpdate<"stock_items">["status"];
+      } else {
+        update.status = "available" as TablesUpdate<"stock_items">["status"];
+      }
+    }
+
+    // Suppress unused var warning
+    void finalMode;
+  }
+
+  const { error } = await supabase.from("stock_items").update(update).eq("id", id);
+  if (error) throw error;
+}
+
 export async function deleteStockItem(id: string): Promise<void> {
   const { error } = await supabase.from("stock_items").delete().eq("id", id);
   if (error) throw error;

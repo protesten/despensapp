@@ -53,6 +53,14 @@ function ActionMenu({ item, onAction, onDelete }: {
               <MenuButton icon="🗑️" label="Merma" onClick={() => { setOpen(false); onAction("waste"); }} />
               <MenuButton icon="⏰" label="Expirar" onClick={() => { setOpen(false); onAction("expiry"); }} />
               <Link
+                to="/despensa/stock/$stockItemId/editar"
+                params={{ stockItemId: item.id }}
+                className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent"
+                onClick={() => setOpen(false)}
+              >
+                ✏️ Editar stock
+              </Link>
+              <Link
                 to="/despensa/stock/$stockItemId/historial"
                 params={{ stockItemId: item.id }}
                 className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent"
