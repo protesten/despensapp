@@ -88,6 +88,22 @@ function ExportPage() {
     }
   };
 
+  const handleExportTabular = async (fmt: "csv" | "xlsx") => {
+    setLoading(true);
+    setLabel(fmt === "csv" ? "Stock CSV" : "Stock Excel");
+    setItemCount(null);
+    setResult("");
+    try {
+      const count = fmt === "csv" ? await exportStockToCSV() : await exportStockToXLSX();
+      setItemCount(count);
+      toast.success(`${count} items exportados a ${fmt.toUpperCase()}`);
+    } catch (e: any) {
+      toast.error(`Error al exportar: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showUser />
