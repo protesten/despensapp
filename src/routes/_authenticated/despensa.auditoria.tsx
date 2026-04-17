@@ -32,8 +32,16 @@ function AuditPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const r = await auditFn();
-      setReport(r);
+      const r: any = await auditFn();
+      // Normalize: ensure all arrays exist (handle partial/undefined responses)
+      const safe: AuditReport = {
+        missing_nutrition: Array.isArray(r?.missing_nutrition) ? r.missing_nutrition : [],
+        dirty_categories: Array.isArray(r?.dirty_categories) ? r.dirty_categories : [],
+        incoherent_source: Array.isArray(r?.incoherent_source) ? r.incoherent_source : [],
+        duplicates: Array.isArray(r?.duplicates) ? r.duplicates : [],
+        generated_at: r?.generated_at ?? new Date().toISOString(),
+      };
+      setReport(safe);
     } catch (e: any) {
       console.error(e);
       toast.error("Error al ejecutar auditoría");
