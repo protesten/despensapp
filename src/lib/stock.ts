@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import type { ProductNutrition } from "@/lib/products";
 
 export type StockItem = Tables<"stock_items">;
@@ -11,6 +11,10 @@ export type StockItemWithProduct = StockItem & {
     brand: string | null;
     default_unit: string | null;
     category: string | null;
+    package_size_value: number | null;
+    package_size_unit: string | null;
+    serving_size_value: number | null;
+    serving_size_unit: string | null;
     product_nutrition: ProductNutrition[] | ProductNutrition | null;
   };
 };
@@ -56,6 +60,9 @@ export interface StockFormData {
   unit_cost: number | null;
   open_status: string;
   status: string;
+  tracking_mode?: "bulk" | "package" | "serving";
+  package_count?: number | null;
+  serving_count?: number | null;
 }
 
 export interface MovementFormData {
@@ -70,7 +77,7 @@ export interface MovementFormData {
 export async function fetchStockItems(): Promise<StockItemWithProduct[]> {
   const { data, error } = await supabase
     .from("stock_items")
-    .select("*, products(name, brand, default_unit, category, product_nutrition(*))")
+    .select("*, products(name, brand, default_unit, category, package_size_value, package_size_unit, serving_size_value, serving_size_unit, product_nutrition(*))")
     .neq("status", "consumed")
     .order("created_at", { ascending: false });
 
@@ -92,6 +99,9 @@ export async function createStockItem(form: StockFormData): Promise<string> {
     unit_cost: form.unit_cost,
     open_status: form.open_status as TablesInsert<"stock_items">["open_status"],
     status: form.status as TablesInsert<"stock_items">["status"],
+    tracking_mode: (form.tracking_mode ?? "bulk") as TablesInsert<"stock_items">["tracking_mode"],
+    package_count: form.package_count ?? null,
+    serving_count: form.serving_count ?? null,
     user_id: userId,
   };
 
@@ -183,12 +193,26 @@ export async function createMovement(form: MovementFormData): Promise<void> {
     newStatus = "available";
   }
 
+  // Recompute derived counts using the product sizes
+  const { data: prodSizes } = await supabase
+    .from("products")
+    .select("package_size_value, serving_size_value")
+    .eq("id", form.product_id)
+    .single();
+
+  const pkgSize = Number(prodSizes?.package_size_value ?? 0);
+  const srvSize = Number(prodSizes?.serving_size_value ?? 0);
+
+  const updatePayload: TablesUpdate<"stock_items"> = {
+    quantity: newQuantity,
+    status: newStatus as TablesUpdate<"stock_items">["status"],
+  };
+  if (pkgSize > 0) updatePayload.package_count = newQuantity / pkgSize;
+  if (srvSize > 0) updatePayload.serving_count = newQuantity / srvSize;
+
   const { error: updateErr } = await supabase
     .from("stock_items")
-    .update({
-      quantity: newQuantity,
-      status: newStatus as TablesInsert<"stock_items">["status"],
-    })
+    .update(updatePayload)
     .eq("id", form.stock_item_id);
 
   if (updateErr) throw updateErr;

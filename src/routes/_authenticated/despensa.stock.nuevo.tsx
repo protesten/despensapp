@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchProducts, type Product, UNIT_OPTIONS } from "@/lib/products";
 import { createStockItem, LOCATION_LABELS } from "@/lib/stock";
+import {
+  getModeAvailability,
+  toBulk,
+  formatNumber,
+  pluralizeUnit,
+  type TrackingMode,
+} from "@/lib/stock-conversion";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { toast } from "sonner";
 
@@ -21,7 +28,8 @@ function AddStockPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [quantity, setQuantity] = useState("");
+  const [trackingMode, setTrackingMode] = useState<TrackingMode>("bulk");
+  const [count, setCount] = useState("");
   const [unit, setUnit] = useState("g");
   const [location, setLocation] = useState("pantry");
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10));
@@ -45,11 +53,27 @@ function AddStockPage() {
       })
     : products;
 
+  const availability = useMemo(
+    () => getModeAvailability(selectedProduct),
+    [selectedProduct],
+  );
+
   const handleSelect = (product: Product) => {
     setSelectedProduct(product);
     setUnit(product.default_unit ?? "g");
-    setSearch("");
+    setTrackingMode("bulk");
+    setCount("");
   };
+
+  const handleModeChange = (mode: TrackingMode) => {
+    setTrackingMode(mode);
+    setCount("");
+  };
+
+  const numericCount = Number(count);
+  const validCount = !!count && numericCount > 0 && !isNaN(numericCount);
+  const bulkQuantity = validCount ? toBulk(numericCount, trackingMode, selectedProduct) : 0;
+  const bulkUnit = selectedProduct?.default_unit ?? unit;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -57,9 +81,16 @@ function AddStockPage() {
       toast.error("Selecciona un producto");
       return;
     }
-    const qty = Number(quantity);
-    if (!quantity || qty <= 0 || isNaN(qty)) {
+    if (!validCount) {
       toast.error("La cantidad debe ser un número mayor que 0");
+      return;
+    }
+    if (trackingMode === "package" && !availability.package) {
+      toast.error(availability.packageReason ?? "Modo no disponible");
+      return;
+    }
+    if (trackingMode === "serving" && !availability.serving) {
+      toast.error(availability.servingReason ?? "Modo no disponible");
       return;
     }
 
@@ -67,14 +98,17 @@ function AddStockPage() {
     try {
       await createStockItem({
         product_id: selectedProduct.id,
-        quantity: qty,
-        unit,
+        quantity: bulkQuantity,
+        unit: bulkUnit,
         location,
         purchase_date: purchaseDate || null,
         expiration_date: expirationDate || null,
         unit_cost: unitCost ? Number(unitCost) : null,
         open_status: openStatus,
         status,
+        tracking_mode: trackingMode,
+        package_count: trackingMode === "package" ? numericCount : null,
+        serving_count: trackingMode === "serving" ? numericCount : null,
       });
       toast.success(`Stock de "${selectedProduct.name}" añadido`);
       navigate({ to: "/despensa/stock" });
@@ -84,6 +118,11 @@ function AddStockPage() {
       setLoading(false);
     }
   };
+
+  const inputLabel =
+    trackingMode === "package" ? "Nº de envases *" :
+    trackingMode === "serving" ? "Nº de porciones *" :
+    "Cantidad *";
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,19 +181,79 @@ function AddStockPage() {
             </CardContent>
           </Card>
 
+          {selectedProduct && (availability.package || availability.serving) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">2. ¿Cómo cuentas este stock?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <ModeOption
+                  selected={trackingMode === "package"}
+                  disabled={!availability.package}
+                  reason={availability.packageReason}
+                  onClick={() => handleModeChange("package")}
+                  title="Por envases"
+                  detail={
+                    selectedProduct.package_size_value
+                      ? `${formatNumber(selectedProduct.package_size_value)} ${selectedProduct.package_size_unit ?? selectedProduct.default_unit ?? ""} c/u`
+                      : "—"
+                  }
+                />
+                <ModeOption
+                  selected={trackingMode === "serving"}
+                  disabled={!availability.serving}
+                  reason={availability.servingReason}
+                  onClick={() => handleModeChange("serving")}
+                  title="Por porciones"
+                  detail={
+                    selectedProduct.serving_size_value
+                      ? `${formatNumber(selectedProduct.serving_size_value)} ${selectedProduct.serving_size_unit ?? selectedProduct.default_unit ?? ""} c/u`
+                      : "—"
+                  }
+                />
+                <ModeOption
+                  selected={trackingMode === "bulk"}
+                  onClick={() => handleModeChange("bulk")}
+                  title="Cantidad bruta"
+                  detail={`En ${selectedProduct.default_unit ?? "g"}`}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">2. Detalles del stock</CardTitle>
+              <CardTitle className="text-base">
+                {selectedProduct && (availability.package || availability.serving) ? "3" : "2"}. Detalles del stock
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>Cantidad *</Label>
-                  <Input type="number" step="any" min="0.01" value={quantity} onChange={(e) => setQuantity(e.target.value)} required placeholder="ej. 500" />
+                  <Label>{inputLabel}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0.01"
+                    value={count}
+                    onChange={(e) => setCount(e.target.value)}
+                    required
+                    placeholder={trackingMode === "bulk" ? "ej. 500" : "ej. 12"}
+                  />
+                  {validCount && trackingMode !== "bulk" && (
+                    <p className="text-xs text-muted-foreground">
+                      = {formatNumber(bulkQuantity)} {bulkUnit} totales
+                    </p>
+                  )}
+                  {validCount && trackingMode === "bulk" && selectedProduct?.package_size_value ? (
+                    <p className="text-xs text-muted-foreground">
+                      ≈ {formatNumber(numericCount / selectedProduct.package_size_value)} {pluralizeUnit("package", numericCount / selectedProduct.package_size_value)}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-1">
                   <Label>Unidad *</Label>
-                  <Select value={unit} onValueChange={setUnit}>
+                  <Select value={unit} onValueChange={setUnit} disabled={trackingMode !== "bulk"}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {UNIT_OPTIONS.map((o) => (
@@ -218,5 +317,41 @@ function AddStockPage() {
         </form>
       </main>
     </div>
+  );
+}
+
+function ModeOption({
+  selected, disabled, reason, onClick, title, detail,
+}: {
+  selected: boolean;
+  disabled?: boolean;
+  reason?: string;
+  onClick: () => void;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={reason}
+      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+        selected
+          ? "border-primary bg-primary/5"
+          : "border-border hover:bg-accent"
+      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground">{detail}</p>
+        </div>
+        <div className={`h-4 w-4 rounded-full border-2 shrink-0 ${selected ? "border-primary bg-primary" : "border-muted-foreground/40"}`} />
+      </div>
+      {disabled && reason && (
+        <p className="text-xs text-muted-foreground mt-1">{reason}</p>
+      )}
+    </button>
   );
 }

@@ -117,14 +117,30 @@ function DespensaIndexPage() {
                         {p.category && <Badge variant="secondary" className="text-xs">{p.category}</Badge>}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive shrink-0"
-                      onClick={() => handleDelete(p.id, p.name)}
-                    >
-                      ✕
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                      >
+                        <Link
+                          to="/despensa/productos/$productId/editar"
+                          params={{ productId: p.id }}
+                          aria-label={`Editar ${p.name}`}
+                        >
+                          ✏️
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => handleDelete(p.id, p.name)}
+                        aria-label={`Eliminar ${p.name}`}
+                      >
+                        ✕
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-2">
                     <MacroBadges

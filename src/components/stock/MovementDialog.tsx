@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { createMovement, type StockItemWithProduct } from "@/lib/stock";
+import {
+  toBulk,
+  fromBulk,
+  formatNumber,
+  pluralizeUnit,
+  type TrackingMode,
+} from "@/lib/stock-conversion";
 
 type MovementType = "consumption" | "adjustment" | "waste" | "expiry";
 
@@ -38,29 +45,47 @@ interface Props {
 }
 
 export function MovementDialog({ open, onOpenChange, item, type, onSuccess }: Props) {
-  const [quantity, setQuantity] = useState("");
+  const mode: TrackingMode = (item.tracking_mode ?? "bulk") as TrackingMode;
+
+  const [count, setCount] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const isAdjustment = type === "adjustment";
-  const maxQuantity = Number(item.quantity);
+  const bulkUnit = item.unit;
+  const stockBulk = Number(item.quantity);
+
+  // Max amount in current mode units
+  const maxInMode = useMemo(() => {
+    if (mode === "bulk") return stockBulk;
+    return fromBulk(stockBulk, mode, item.products) ?? stockBulk;
+  }, [mode, stockBulk, item.products]);
+
+  const numericCount = Number(count);
+  const validInput = !!count && (isAdjustment ? numericCount !== 0 : numericCount > 0);
+  const bulkDelta = validInput ? toBulk(Math.abs(numericCount), mode, item.products) : 0;
+  const signedBulkDelta = isAdjustment && numericCount < 0 ? -bulkDelta : bulkDelta;
+
+  const modeUnitLabel =
+    mode === "package" ? pluralizeUnit("package", numericCount || 1) :
+    mode === "serving" ? pluralizeUnit("serving", numericCount || 1) :
+    bulkUnit;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const qty = Number(quantity);
 
-    if (!quantity || (isAdjustment ? qty === 0 : qty <= 0)) {
+    if (!validInput) {
       setError("Cantidad inválida");
       return;
     }
 
-    if (!isAdjustment && qty > maxQuantity) {
-      setError(`Máximo disponible: ${maxQuantity} ${item.unit}`);
+    if (!isAdjustment && numericCount > maxInMode) {
+      setError(`Máximo disponible: ${formatNumber(maxInMode)} ${modeUnitLabel}`);
       return;
     }
 
-    if (isAdjustment && maxQuantity + qty < 0) {
+    if (isAdjustment && stockBulk + signedBulkDelta < 0) {
       setError(`El ajuste dejaría el stock en negativo`);
       return;
     }
@@ -68,15 +93,19 @@ export function MovementDialog({ open, onOpenChange, item, type, onSuccess }: Pr
     setError("");
     setLoading(true);
     try {
+      // createMovement expects positive quantity_delta; sign is applied by type.
+      // For adjustment we pass the signed value as-is.
+      const qtyDeltaForApi = isAdjustment ? signedBulkDelta : bulkDelta;
+
       await createMovement({
         stock_item_id: item.id,
         product_id: item.product_id,
         movement_type: type,
-        quantity_delta: qty,
-        unit: item.unit,
+        quantity_delta: qtyDeltaForApi,
+        unit: bulkUnit,
         notes: notes.trim() || null,
       });
-      setQuantity("");
+      setCount("");
       setNotes("");
       onOpenChange(false);
       toast.success(`${TITLES[type]} registrado correctamente`);
@@ -90,6 +119,10 @@ export function MovementDialog({ open, onOpenChange, item, type, onSuccess }: Pr
     }
   };
 
+  const inputLabel = isAdjustment
+    ? `Cantidad (+ o −) en ${modeUnitLabel}`
+    : `Cantidad en ${modeUnitLabel} (máx ${formatNumber(maxInMode)})`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
@@ -100,23 +133,32 @@ export function MovementDialog({ open, onOpenChange, item, type, onSuccess }: Pr
 
         <div className="text-sm text-muted-foreground mb-2">
           <span className="font-medium text-foreground">{item.products.name}</span>
-          {" · "}Stock actual: {item.quantity} {item.unit}
+          {" · "}Stock actual: {formatNumber(maxInMode)} {modeUnitLabel}
+          {mode !== "bulk" && (
+            <span className="text-xs"> ({formatNumber(stockBulk)} {bulkUnit})</span>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
-            <Label>Cantidad {isAdjustment ? "(+ o −)" : `(máx ${maxQuantity})`}</Label>
+            <Label>{inputLabel}</Label>
             <Input
               type="number"
               step="any"
               min={isAdjustment ? undefined : "0.01"}
-              max={isAdjustment ? undefined : String(maxQuantity)}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder={isAdjustment ? "Ej: -50 o 100" : `Máx ${maxQuantity}`}
+              max={isAdjustment ? undefined : String(maxInMode)}
+              value={count}
+              onChange={(e) => setCount(e.target.value)}
+              placeholder={isAdjustment ? "Ej: -1 o 2" : `Máx ${formatNumber(maxInMode)}`}
               required
               autoFocus
             />
+            {validInput && mode !== "bulk" && (
+              <p className="text-xs text-muted-foreground">
+                = {formatNumber(Math.abs(signedBulkDelta))} {bulkUnit}
+                {isAdjustment && numericCount < 0 ? " (resta)" : ""}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
