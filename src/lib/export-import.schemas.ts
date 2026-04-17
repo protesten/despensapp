@@ -23,6 +23,12 @@ export interface PreviewMovement extends MovementImportItem {
   resulting_quantity: number;
   resulting_status: string;
   error: string | null;
+  /** Si el stock_item_id original no existía pero se resolvió desde product_id. */
+  resolved_stock_item_id?: string | null;
+  /** Hint de diagnóstico: el product_id existe aunque stock_item_id falle. */
+  product_id_exists?: boolean;
+  /** Hint de diagnóstico: parece haber confusión entre product_id y stock_item_id. */
+  ids_swapped_hint?: boolean;
 }
 
 export interface ImportPreviewResult {
