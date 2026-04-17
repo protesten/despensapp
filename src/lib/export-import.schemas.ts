@@ -90,14 +90,26 @@ export const AI_RESPONSE_FORMAT_EXAMPLE = {
 
 export const AI_PROMPT_TEMPLATE = `Eres un asistente de planificación de menús. A partir del inventario de despensa que te proporciono en JSON, genera un menú diario (desayuno, comida, cena y snack opcional).
 
-REGLAS:
+ESTRUCTURA DEL INVENTARIO:
+El JSON contiene dos bloques:
+- "products": resumen consolidado por producto (totales, nutrición, caducidad agregada). Úsalo para PLANIFICAR el menú.
+- "stock_items": lista detallada de cada item físico de stock con su \`stock_item_id\` y \`product_id\` reales. Úsalo OBLIGATORIAMENTE como única fuente para los IDs de los movimientos.
+
+REGLAS DE PLANIFICACIÓN:
 1. Usa SOLO productos disponibles en el inventario.
-2. Respeta las cantidades disponibles (current_quantity y unit).
+2. Respeta las cantidades disponibles (quantity y unit de cada stock_item).
 3. Prioriza productos próximos a caducar (expiration_date más cercana).
 4. Prioriza productos abiertos (open_status = "opened").
 5. Equilibra macronutrientes usando los datos nutricionales proporcionados.
 6. Respeta alérgenos y suitability_tags si los hay.
 7. Cada producto incluye \`counts_for_macros\`. Si es \`false\`, el producto puede usarse como ingrediente en la receta pero NO debe sumarse al \`resumen_nutricional\` principal.
+
+REGLAS CRÍTICAS DE IDS (NO INFRINGIR):
+A. Copia \`stock_item_id\` y \`product_id\` LITERALMENTE desde el bloque "stock_items". No los inventes, no los completes, no los abrevies.
+B. NUNCA intercambies \`product_id\` y \`stock_item_id\`. Son campos distintos con valores distintos.
+C. Si para un ingrediente no encuentras un \`stock_item_id\` en "stock_items", NO generes movimiento para ese ingrediente. Mejor omitirlo que inventarlo.
+D. Cuando un producto tiene varios stock_items, elige el de menor \`use_priority\` (1 = preferido: ya está abierto o caduca antes).
+E. La unidad del movimiento debe coincidir con la unidad del stock_item correspondiente.
 
 FORMATO DE RESPUESTA:
 Responde SOLO con un JSON válido con esta estructura exacta:
@@ -110,11 +122,11 @@ Responde SOLO con un JSON válido con esta estructura exacta:
   },
   "movements": [
     {
-      "stock_item_id": "<uuid>",
-      "product_id": "<uuid>",
+      "stock_item_id": "<uuid copiado literal de stock_items[].stock_item_id>",
+      "product_id": "<uuid copiado literal de stock_items[].product_id>",
       "movement_type": "consumption",
       "quantity_delta": <número positivo>,
-      "unit": "<g|ml|unit|kg|l>",
+      "unit": "<g|ml|unit|kg|l — debe coincidir con stock_items[].unit>",
       "notes": "<comida>: <plato> – <ingrediente>"
     }
   ],
