@@ -68,14 +68,6 @@ function ActionMenu({ item, onAction, onDelete }: {
               >
                 📋 Historial
               </Link>
-              <Link
-                to="/despensa/productos/$productId/editar"
-                params={{ productId: item.product_id }}
-                className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-accent"
-                onClick={() => setOpen(false)}
-              >
-                ✏️ Editar producto
-              </Link>
             </div>
             <div className="border-t border-border mt-2 pt-2">
               <MenuButton icon="✕" label="Eliminar" onClick={() => { setOpen(false); onDelete(); }} destructive />
