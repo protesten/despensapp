@@ -1,58 +1,42 @@
 
-
-## Diagnóstico
-
-El usuario está en `/despensa/productos/{id}/editar` y pulsa el botón **"← Volver"** del header repetidamente sin que pase nada (visible en el session replay: 10+ clicks en x=1578, y=31, solo cambia el atributo `data-transitioning` pero la URL no cambia).
-
-**Causa raíz**: en `despensa.productos.$productId.editar.tsx`:
-
-```tsx
-<AppHeader backTo={`/despensa/productos/${productId}`} ... />
-```
-
-`AppHeader` internamente hace `<Link to={backTo as any}>`. TanStack Router NO acepta una URL con el `$productId` ya interpolado para rutas dinámicas — exige el patrón literal `/despensa/productos/$productId` + `params={{ productId }}` por separado. Resultado: el Link parece funcional (hover, focus, transición) pero **nunca navega**.
-
-Por eso el usuario percibe "no se puede editar": entra a la pantalla de editar, no puede salir, e interpreta que la edición está rota. El botón "Guardar cambios" ni siquiera se ha llegado a probar (no hay PATCH en network logs).
-
-Lo mismo le pasaría al botón "Cancelar" del formulario: ese sí funciona porque usa `navigate({ to: "/despensa/productos/$productId", params: { productId } })`. Es solo el header el que está roto.
+El usuario quiere también poder descargar en CSV/Excel el **consolidado** (una fila por producto, ya agrupado, con totales y nutrición) — lo que hoy solo existe como JSON via `exportConsolidated()`.
 
 ## Plan
 
-### Cambio único: arreglar `AppHeader` para soportar params
+### 1. Añadir funciones tabulares en `src/lib/export-tabular.ts`
 
-Modificar `src/components/layout/AppHeader.tsx` para aceptar `backParams` opcional y pasarlo al `<Link>`:
+Reutilizar `exportConsolidated()` (ya devuelve `ConsolidatedProduct[]` con todo lo necesario) y aplanar a filas planas para hoja de cálculo.
 
-```tsx
-interface AppHeaderProps {
-  title?: string;
-  backTo?: string;
-  backParams?: Record<string, string>;  // nuevo
-  backLabel?: string;
-  showUser?: boolean;
-}
-// ...
-<Link to={backTo as any} params={backParams as any}>{backLabel}</Link>
-```
+Columnas del consolidado:
+- `producto`, `marca`, `categoría`
+- `cantidad_total`, `unidad` (canónica)
+- `cantidad_g`, `cantidad_ml`, `cantidad_unidades` (desglose desde `quantity_by_unit`)
+- `ubicaciones` (join con `, `)
+- `envases_abiertos`, `envases_cerrados`, `total_items`
+- `caducidad_proxima`, `todo_caducado` (Sí/No)
+- `base_nutricional` (100g/100ml), `kcal_por_100`, `proteinas_por_100`, `carbohidratos_por_100`, `grasas_por_100`
+- `nutricion_completa` (Sí/No), `relevancia_nutricional`, `cuenta_para_macros` (Sí/No)
+- `fuente`, `fuente_coherente` (Sí/No)
 
-### Aplicarlo en la página de editar producto
+Nuevas funciones:
+- `exportConsolidatedToCSV(): Promise<number>`
+- `exportConsolidatedToXLSX(): Promise<number>`
 
-En `src/routes/_authenticated/despensa.productos.$productId.editar.tsx`:
+Reutilizar helpers existentes (`downloadBlob`, `todayStamp`, BOM UTF-8, auto-fit columnas). Nombre fichero: `despensapp-consolidado-{fecha}.{ext}`.
 
-```tsx
-<AppHeader
-  title="Editar producto"
-  backTo="/despensa/productos/$productId"
-  backParams={{ productId }}
-  backLabel="← Volver"
-/>
-```
+### 2. UI en `despensa.exportar.tsx` (pestaña "📊 Tabla")
+
+Añadir una segunda sección dentro de la pestaña Tabla con dos botones más:
+- **Descargar consolidado (Excel)**
+- **Descargar consolidado (CSV)**
+
+Mantener la sección actual (stock detallado) y separar visualmente con un subtítulo o card aparte. Toasts de éxito/error y estados de carga independientes por botón.
 
 ### Archivos tocados
 
 | Archivo | Cambio |
 |---|---|
-| `src/components/layout/AppHeader.tsx` | Añadir prop `backParams` y pasarlo al `Link` |
-| `src/routes/_authenticated/despensa.productos.$productId.editar.tsx` | Usar `backTo` con patrón `$productId` + `backParams` |
+| `src/lib/export-tabular.ts` | Añadir `buildConsolidatedRows`, `exportConsolidatedToCSV`, `exportConsolidatedToXLSX` |
+| `src/routes/_authenticated/despensa.exportar.tsx` | Añadir bloque + 2 botones en pestaña Tabla |
 
-Sin migración de DB. Sin cambios en lógica de guardado (que ya funciona, solo no se había llegado a probar porque el usuario quedaba atrapado en la pantalla).
-
+Sin cambios en DB ni en `export.functions.ts` (`exportConsolidated` ya devuelve todo lo necesario).
