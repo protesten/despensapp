@@ -1,35 +1,57 @@
 
 
-## Problem
+## Plan final de implementación
 
-The stock page shows "Sin datos nutricionales" even though the products have nutrition data. The issue is in how `product_nutrition` is extracted from the nested Supabase query response.
-
-### Root cause
-
-In `despensa.stock.index.tsx` (line 202-204), the code assumes `product_nutrition` is always an array:
-
-```typescript
-const nutrition = Array.isArray(item.products.product_nutrition)
-  ? item.products.product_nutrition[0] ?? null
-  : null;
+### 1. Migración DB
+```sql
+CREATE TYPE nutrition_relevance_type AS ENUM ('required','optional','ignore');
+ALTER TABLE products ADD COLUMN nutrition_relevance nutrition_relevance_type;
 ```
 
-When Supabase returns `product_nutrition` through a double-nested embed (`stock_items → products → product_nutrition`), it may return a single object instead of an array (depending on PostgREST's relationship detection). If it's an object, `Array.isArray` is `false` and the code falls through to `null`.
+### 2. `src/lib/nutrition-relevance.ts` (nuevo)
+Función pura `classifyNutritionRelevance(product)` que devuelve `"required" | "optional" | "ignore"`.
 
-### Fix
+Orden de resolución:
+1. Override manual (`product.nutrition_relevance`) — manda si no es null.
+2. Match `ignore`: categorías (`especias`, `hierbas`, `condimentos`, `sal`, `levadura`, `colorantes`) + regex nombre (`sal`, `pimienta`, `orégano`, `comino`, `curry`, `pimentón`, `canela`, `nuez moscada`, `laurel`, `tomillo`, `romero`, `albahaca`, `cilantro`, `perejil`, `cúrcuma`, `cardamomo`, `clavo`, `anís`, `azafrán`, `levadura`).
+3. Match `optional` explícito para edulcorantes acalóricos: regex (`stevia`, `eritritol`, `sucralosa`, `aspartamo`, `sacarina`, `xilitol`, `monk fruit`, `edulcorante`).
+4. Match `required`: categorías (`aceites`, `salsas`, `frutos secos`, `semillas`, `cremas untables`, `mantequillas`, `chocolates`) + regex azúcares calóricos (`azúcar`, `miel`, `sirope`, `melaza`, `panela`, `jarabe`, `agave`, `arce`).
+5. Fallback: `optional`.
 
-**1. Update `StockItemWithProduct` type** in `src/lib/stock.ts` to accept both formats:
+### 3. `src/lib/audit.functions.ts`
+- `AuditReport` cambia:
+  - `missing_nutrition_critical`: productos `required` sin macros.
+  - `missing_nutrition_optional`: productos `optional` sin macros.
+  - Productos `ignore` sin macros: excluidos de ambas listas.
+- Nueva función `setProductRelevance(productId, value)` — update de `products.nutrition_relevance`.
+- El select de `auditPantry` incluye `nutrition_relevance`.
 
-```typescript
-product_nutrition: ProductNutrition[] | ProductNutrition | null;
-```
+### 4. `src/lib/export.functions.ts`
+En `ConsolidatedProduct` añadir:
+- `nutrition_relevance: "required" | "optional" | "ignore"` (efectivo, resuelto).
+- `counts_for_macros: boolean` (= `relevance !== "ignore"`).
+- `nutrition_complete`: semántica real preservada — `true` solo si kcal+protein+carbs+fat presentes, **independientemente de relevance**.
 
-**2. Update the nutrition extraction** in `src/routes/_authenticated/despensa.stock.index.tsx` to handle all shapes:
+### 5. `src/lib/export-import.schemas.ts`
+Actualizar `AI_PROMPT_TEMPLATE` con regla general (sin mencionar edulcorantes):
 
-```typescript
-const raw = item.products.product_nutrition;
-const nutrition = Array.isArray(raw) ? (raw[0] ?? null) : (raw ?? null);
-```
+> Cada producto incluye `counts_for_macros`. Si es `false`, el producto puede usarse como ingrediente en la receta pero **NO debe sumarse al `resumen_nutricional` principal**.
 
-This two-line change ensures nutrition displays correctly regardless of whether Supabase returns an array, object, or null.
+### 6. `src/routes/_authenticated/despensa.auditoria.tsx`
+- Stat "Sin nutrición" muestra `critical.length` grande + `+N opcionales` pequeño.
+- Card "Sin nutrición" dividida en dos subsecciones: **Crítica** (destructive) y **Opcional** (muted).
+- Cada item: badge con relevance + `<Select>` mini con opciones `required`/`optional`/`ignore` + default (null) que llama a `setProductRelevance` y recarga.
+
+### 7. `src/integrations/supabase/types.ts`
+Auto-regenerado tras migración.
+
+### Archivos tocados
+| Archivo | Cambio |
+|---|---|
+| Migración SQL | Enum + columna nullable |
+| `src/lib/nutrition-relevance.ts` | Nuevo — heurística pura |
+| `src/lib/audit.functions.ts` | Split lista + `setProductRelevance` |
+| `src/lib/export.functions.ts` | Nuevos campos, preservar `nutrition_complete` real |
+| `src/lib/export-import.schemas.ts` | Prompt con regla general |
+| `src/routes/_authenticated/despensa.auditoria.tsx` | UI dividida + selector manual |
 
