@@ -80,7 +80,7 @@ function AuditPage() {
     if (!confirm(`¿Fusionar duplicado en "${name}"? Esta acción no se puede deshacer.`)) return;
     setBusy(true);
     try {
-      await mergeProducts({ data: { canonical_id: canonical, duplicate_id: duplicate } });
+      await mergeProducts({ canonical_id: canonical, duplicate_id: duplicate });
       toast.success("Productos fusionados");
       await load();
     } catch (e: any) {
