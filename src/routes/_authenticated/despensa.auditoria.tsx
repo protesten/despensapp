@@ -26,7 +26,7 @@ function AuditPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const r: any = await auditFn();
+      const r: any = await auditPantry();
       // Normalize: ensure all arrays exist (handle partial/undefined responses)
       const safe: AuditReport = {
         missing_nutrition: Array.isArray(r?.missing_nutrition) ? r.missing_nutrition : [],
@@ -51,7 +51,7 @@ function AuditPage() {
   const handleNormalizeCategories = async () => {
     setBusy(true);
     try {
-      const { updated } = await normalizeFn();
+      const { updated } = await applyCategoryNormalization();
       toast.success(`${updated} categorías normalizadas`);
       await load();
     } catch (e: any) {
@@ -65,7 +65,7 @@ function AuditPage() {
   const handleFixSource = async () => {
     setBusy(true);
     try {
-      const { updated } = await fixSourceFn();
+      const { updated } = await fixSourceCoherence();
       toast.success(`${updated} productos corregidos (source coherente)`);
       await load();
     } catch (e: any) {
@@ -80,7 +80,7 @@ function AuditPage() {
     if (!confirm(`¿Fusionar duplicado en "${name}"? Esta acción no se puede deshacer.`)) return;
     setBusy(true);
     try {
-      await mergeFn({ data: { canonical_id: canonical, duplicate_id: duplicate } });
+      await mergeProducts({ data: { canonical_id: canonical, duplicate_id: duplicate } });
       toast.success("Productos fusionados");
       await load();
     } catch (e: any) {
