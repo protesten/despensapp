@@ -142,12 +142,35 @@ ${body.target.hc} intercambios de Hidratos + ${body.target.prot} intercambios de
 
 Selecciona 2-4 alimentos que formen una comida culinariamente coherente y realista para "${body.meal_name}".${avoidLine}${excludeLine}
 
+CÁLCULO OBLIGATORIO DE GRAMOS:
+Para cada alimento seleccionado, calcula los gramos necesarios para que la suma total de intercambios de todos los ingredientes se aproxime LO MÁXIMO POSIBLE al objetivo indicado. No uses cantidades arbitrarias. Usa esta fórmula para calcular los gramos de cada ingrediente:
+
+  gramos = (intercambios_deseados_de_ese_ingrediente × 10000) / kcal_por_100g
+
+Reparte los intercambios entre los ingredientes según su perfil nutricional dominante:
+- Asigna los intercambios de HC a los alimentos ricos en hidratos (pan, cereales, fruta, legumbres...).
+- Asigna los intercambios de Proteína a los alimentos ricos en proteína (carne, pescado, huevo, lácteos...).
+- Asigna los intercambios de Grasa a los alimentos ricos en grasa (aceite, frutos secos, aguacate...).
+
+El objetivo es que la SUMA de todos los ingredientes llegue a:
+- HC total: ${body.target.hc} intercambios
+- Proteína total: ${body.target.prot} intercambios
+- Grasa total: ${body.target.fat} intercambios
+
+Con tolerancia máxima de ±0.3 por macro. Si no llegas al objetivo con 3 ingredientes, añade un cuarto.
+
+Recuerda que los intercambios de un ingrediente se calculan así:
+  hc_ingrediente   = (carbs_per_100g   × 4 × gramos) / 10000
+  prot_ingrediente = (protein_per_100g × 4 × gramos) / 10000
+  fat_ingrediente  = (fat_per_100g     × 9 × gramos) / 10000
+
 Reglas:
 - Los nombres deben coincidir EXACTAMENTE con los de la lista (mismas mayúsculas/acentos/espacios). No inventes ni traduzcas nombres.
 - No uses productos que no estén en la lista.
 - La combinación debe tener sentido como plato real.
 - No excedas la cantidad disponible de cada producto.
 - "grams" debe ser un número entero positivo.
+- Antes de responder, SUMA mentalmente los intercambios de cada ingrediente y verifica que el total cuadra con el objetivo dentro de ±0.3 por macro. Si no cuadra, ajusta los gramos.
 
 Devuelve la respuesta llamando a la herramienta "propose_meal".`;
 
