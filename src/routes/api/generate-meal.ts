@@ -35,6 +35,51 @@ interface GeneratedMeal {
   items: GeneratedMealItem[];
 }
 
+async function fetchWithRetries(
+  url: string,
+  options: RequestInit,
+  maxRetries = 2,
+  timeoutMs = 60000,
+): Promise<Response> {
+  let attempt = 0;
+  let lastError: unknown = null;
+  while (attempt <= maxRetries) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      // Reintentar solo en errores transitorios del servidor
+      if (res.status >= 500 && res.status <= 599 && attempt < maxRetries) {
+        console.warn(
+          `[generate-meal] intento ${attempt + 1} falló con ${res.status}, reintentando...`,
+        );
+        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        attempt++;
+        continue;
+      }
+      return res;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      lastError = err;
+      const isAbort =
+        err instanceof Error &&
+        (err.name === "AbortError" || err.message.includes("aborted"));
+      console.warn(
+        `[generate-meal] intento ${attempt + 1} ${isAbort ? "timeout" : "error"}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      if (attempt >= maxRetries) break;
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+      attempt++;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Fallo tras reintentos");
+}
+
 export const Route = createFileRoute("/api/generate-meal")({
   server: {
     handlers: {
