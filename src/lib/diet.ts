@@ -39,6 +39,9 @@ export interface AvailableProduct {
   carbs_per_100g: number | null;
   protein_per_100g: number | null;
   fat_per_100g: number | null;
+  serving_size_value: number | null;
+  serving_size_unit: string | null;
+  servings_per_package: number | null;
 }
 
 export const DEFAULT_MEALS = [
@@ -125,6 +128,9 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
         name,
         brand,
         default_unit,
+        serving_size_value,
+        serving_size_unit,
+        servings_per_package,
         product_nutrition (
           kcal_per_100g,
           carbs_per_100g,
@@ -147,6 +153,9 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
       name: string;
       brand: string | null;
       default_unit: string | null;
+      serving_size_value: number | null;
+      serving_size_unit: string | null;
+      servings_per_package: number | null;
       product_nutrition:
         | {
             kcal_per_100g: number | null;
@@ -196,6 +205,9 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
         carbs_per_100g: nut.carbs_per_100g ?? null,
         protein_per_100g: nut.protein_per_100g ?? null,
         fat_per_100g: nut.fat_per_100g ?? null,
+        serving_size_value: p.serving_size_value ?? null,
+        serving_size_unit: p.serving_size_unit ?? null,
+        servings_per_package: p.servings_per_package ?? null,
       });
     }
   }
@@ -327,6 +339,9 @@ export async function generateMealWithAI(params: {
         carbs_per_100g: p.carbs_per_100g,
         protein_per_100g: p.protein_per_100g,
         fat_per_100g: p.fat_per_100g,
+        serving_size_value: p.serving_size_value,
+        serving_size_unit: p.serving_size_unit,
+        servings_per_package: p.servings_per_package,
       })),
       avoid_product_names: params.avoid_product_names,
       exclude_product_names: params.exclude_product_names,
