@@ -86,8 +86,11 @@ export const Route = createFileRoute("/api/generate-meal")({
           const systemPrompt =
             "Eres un nutricionista experto en el sistema de intercambios. Devuelves SIEMPRE únicamente JSON válido siguiendo el esquema indicado, sin texto adicional.";
 
-          const userPrompt = `Tengo estos productos disponibles en mi despensa:
+          const userPrompt = `Tengo estos productos disponibles en mi despensa (nombres EXACTOS):
 ${productLines}
+
+Lista de nombres exactos permitidos: ${exactNamesList}.
+Usa los nombres de producto EXACTAMENTE como aparecen en esta lista, sin modificarlos (mismas mayúsculas, acentos, espacios y signos).
 
 Para la comida "${body.meal_name}" necesito cumplir este objetivo:
 ${body.target.hc} intercambios de Hidratos + ${body.target.prot} intercambios de Proteína + ${body.target.fat} intercambios de Grasa. Tolerancia ±0.3 por macro.
@@ -95,7 +98,7 @@ ${body.target.hc} intercambios de Hidratos + ${body.target.prot} intercambios de
 Selecciona 2-4 alimentos que formen una comida culinariamente coherente y realista para "${body.meal_name}".${avoidLine}${excludeLine}
 
 Reglas:
-- Los nombres deben coincidir EXACTAMENTE con los de la lista (mismas mayúsculas/acentos).
+- Los nombres deben coincidir EXACTAMENTE con los de la lista (mismas mayúsculas/acentos/espacios). No inventes ni traduzcas nombres.
 - No uses productos que no estén en la lista.
 - La combinación debe tener sentido como plato real.
 - No excedas la cantidad disponible de cada producto.
@@ -103,7 +106,7 @@ Reglas:
 
 Devuelve la respuesta llamando a la herramienta "propose_meal".`;
 
-          const aiResponse = await fetch(GATEWAY_URL, {
+          const aiResponse = await fetchWithRetries(GATEWAY_URL, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${LOVABLE_API_KEY}`,
