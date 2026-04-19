@@ -337,7 +337,7 @@ function PlannerTab() {
 
   const runGenerateWeek = async () => {
     setBusyKey("week");
-    let okCount = 0;
+    const tasks: Array<{ date: string; mealName: string }> = [];
     for (const date of weekDates) {
       for (const meal of DEFAULT_MEALS) {
         const t = targets.find((x) => x.meal_name === meal.meal_name);
@@ -348,10 +348,16 @@ function PlannerTab() {
             Number(t.target_fat) === 0)
         )
           continue;
-        const ok = await generateOneMeal(date, meal.meal_name);
-        if (ok) okCount++;
+        tasks.push({ date, mealName: meal.meal_name });
       }
     }
+    // Generación en paralelo de todas las comidas de la semana. Cada una se
+    // persiste en Supabase en cuanto la IA responde (insert inmediato), por lo
+    // que un refresh de página no pierde lo ya generado.
+    const results = await Promise.all(
+      tasks.map((t) => generateOneMeal(t.date, t.mealName)),
+    );
+    const okCount = results.filter(Boolean).length;
     setBusyKey(null);
     if (okCount > 0) toast.success(`Semana generada (${okCount} comidas)`);
     load();
