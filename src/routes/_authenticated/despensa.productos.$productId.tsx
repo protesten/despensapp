@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchProduct, deleteProduct, type ProductWithNutrition, SOURCE_OPTIONS } from "@/lib/products";
 import { MacroBadges, NutritionTable } from "@/components/products/NutritionDisplay";
-import { AddToExchangesButton } from "@/components/products/AddToExchangesButton";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/despensa/productos/$productId")({
@@ -87,8 +86,6 @@ function ProductDetailPage() {
             <MacroBadges nutrition={p.product_nutrition} unit={isLiquid ? "ml" : "g"} />
           </CardContent>
         </Card>
-
-        <AddToExchangesButton product={p} />
 
         <Card>
           <CardHeader className="pb-2">
