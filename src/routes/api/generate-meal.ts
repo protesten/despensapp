@@ -35,6 +35,51 @@ interface GeneratedMeal {
   items: GeneratedMealItem[];
 }
 
+async function fetchWithRetries(
+  url: string,
+  options: RequestInit,
+  maxRetries = 2,
+  timeoutMs = 60000,
+): Promise<Response> {
+  let attempt = 0;
+  let lastError: unknown = null;
+  while (attempt <= maxRetries) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      // Reintentar solo en errores transitorios del servidor
+      if (res.status >= 500 && res.status <= 599 && attempt < maxRetries) {
+        console.warn(
+          `[generate-meal] intento ${attempt + 1} falló con ${res.status}, reintentando...`,
+        );
+        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        attempt++;
+        continue;
+      }
+      return res;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      lastError = err;
+      const isAbort =
+        err instanceof Error &&
+        (err.name === "AbortError" || err.message.includes("aborted"));
+      console.warn(
+        `[generate-meal] intento ${attempt + 1} ${isAbort ? "timeout" : "error"}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      if (attempt >= maxRetries) break;
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+      attempt++;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Fallo tras reintentos");
+}
+
 export const Route = createFileRoute("/api/generate-meal")({
   server: {
     handlers: {
@@ -70,6 +115,10 @@ export const Route = createFileRoute("/api/generate-meal")({
             })
             .join("\n");
 
+          const exactNamesList = body.products
+            .map((p) => `"${p.name}"`)
+            .join(", ");
+
           const avoidLine =
             body.avoid_product_names && body.avoid_product_names.length > 0
               ? `\nNo repitas estos productos usados el día anterior en esta misma comida: ${body.avoid_product_names.map((n) => `"${n}"`).join(", ")}.`
@@ -82,8 +131,11 @@ export const Route = createFileRoute("/api/generate-meal")({
           const systemPrompt =
             "Eres un nutricionista experto en el sistema de intercambios. Devuelves SIEMPRE únicamente JSON válido siguiendo el esquema indicado, sin texto adicional.";
 
-          const userPrompt = `Tengo estos productos disponibles en mi despensa:
+          const userPrompt = `Tengo estos productos disponibles en mi despensa (nombres EXACTOS):
 ${productLines}
+
+Lista de nombres exactos permitidos: ${exactNamesList}.
+Usa los nombres de producto EXACTAMENTE como aparecen en esta lista, sin modificarlos (mismas mayúsculas, acentos, espacios y signos).
 
 Para la comida "${body.meal_name}" necesito cumplir este objetivo:
 ${body.target.hc} intercambios de Hidratos + ${body.target.prot} intercambios de Proteína + ${body.target.fat} intercambios de Grasa. Tolerancia ±0.3 por macro.
@@ -91,7 +143,7 @@ ${body.target.hc} intercambios de Hidratos + ${body.target.prot} intercambios de
 Selecciona 2-4 alimentos que formen una comida culinariamente coherente y realista para "${body.meal_name}".${avoidLine}${excludeLine}
 
 Reglas:
-- Los nombres deben coincidir EXACTAMENTE con los de la lista (mismas mayúsculas/acentos).
+- Los nombres deben coincidir EXACTAMENTE con los de la lista (mismas mayúsculas/acentos/espacios). No inventes ni traduzcas nombres.
 - No uses productos que no estén en la lista.
 - La combinación debe tener sentido como plato real.
 - No excedas la cantidad disponible de cada producto.
@@ -99,7 +151,7 @@ Reglas:
 
 Devuelve la respuesta llamando a la herramienta "propose_meal".`;
 
-          const aiResponse = await fetch(GATEWAY_URL, {
+          const aiResponse = await fetchWithRetries(GATEWAY_URL, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -211,10 +263,38 @@ Devuelve la respuesta llamando a la herramienta "propose_meal".`;
             );
           }
 
-          // Map de productos por nombre normalizado
-          const norm = (s: string) => s.trim().toLowerCase();
+          // Matching: exacto normalizado → parcial (includes en ambas direcciones)
+          const norm = (s: string) =>
+            s
+              .trim()
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "");
           const byName = new Map<string, AvailableProductPayload>();
           for (const p of body.products) byName.set(norm(p.name), p);
+
+          const findMatch = (
+            proposedName: string,
+          ): AvailableProductPayload | null => {
+            const key = norm(proposedName);
+            if (!key) return null;
+            const exact = byName.get(key);
+            if (exact) return exact;
+            let best: AvailableProductPayload | null = null;
+            let bestScore = 0;
+            for (const p of body.products) {
+              const n = norm(p.name);
+              if (!n) continue;
+              if (key.includes(n) || n.includes(key)) {
+                const score = Math.min(n.length, key.length);
+                if (score > bestScore) {
+                  bestScore = score;
+                  best = p;
+                }
+              }
+            }
+            return best;
+          };
 
           const validatedItems: Array<{
             product_id: string;
@@ -222,8 +302,13 @@ Devuelve la respuesta llamando a la herramienta "propose_meal".`;
             grams: number;
           }> = [];
           for (const item of parsed.items ?? []) {
-            const match = byName.get(norm(item.product_name));
-            if (!match) continue; // descartar items que no encajen con el catálogo
+            const match = findMatch(item.product_name);
+            if (!match) {
+              console.warn(
+                `[generate-meal] producto ignorado (sin match en stock): "${item.product_name}"`,
+              );
+              continue;
+            }
             const grams = Math.max(1, Math.round(Number(item.grams) || 0));
             if (grams <= 0) continue;
             validatedItems.push({
