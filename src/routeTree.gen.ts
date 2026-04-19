@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedDietaRouteImport } from './routes/_authenticated/dieta'
 import { Route as AuthenticatedDespensaRouteImport } from './routes/_authenticated/despensa'
 import { Route as AuthenticatedDespensaIndexRouteImport } from './routes/_authenticated/despensa.index'
 import { Route as AuthenticatedDespensaStockRouteImport } from './routes/_authenticated/despensa.stock'
@@ -39,6 +40,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDietaRoute = AuthenticatedDietaRouteImport.update({
+  id: '/dieta',
+  path: '/dieta',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedDespensaRoute = AuthenticatedDespensaRouteImport.update({
   id: '/despensa',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/dieta': typeof AuthenticatedDietaRoute
   '/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/despensa/importar': typeof AuthenticatedDespensaImportarRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dieta': typeof AuthenticatedDietaRoute
   '/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/despensa/importar': typeof AuthenticatedDespensaImportarRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/despensa': typeof AuthenticatedDespensaRouteWithChildren
+  '/_authenticated/dieta': typeof AuthenticatedDietaRoute
   '/_authenticated/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/_authenticated/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/_authenticated/despensa/importar': typeof AuthenticatedDespensaImportarRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/despensa'
+    | '/dieta'
     | '/despensa/auditoria'
     | '/despensa/exportar'
     | '/despensa/importar'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/dieta'
     | '/despensa/auditoria'
     | '/despensa/exportar'
     | '/despensa/importar'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/despensa'
+    | '/_authenticated/dieta'
     | '/_authenticated/despensa/auditoria'
     | '/_authenticated/despensa/exportar'
     | '/_authenticated/despensa/importar'
@@ -250,6 +262,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/dieta': {
+      id: '/_authenticated/dieta'
+      path: '/dieta'
+      fullPath: '/dieta'
+      preLoaderRoute: typeof AuthenticatedDietaRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/despensa': {
       id: '/_authenticated/despensa'
@@ -411,10 +430,12 @@ const AuthenticatedDespensaRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDespensaRoute: typeof AuthenticatedDespensaRouteWithChildren
+  AuthenticatedDietaRoute: typeof AuthenticatedDietaRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDespensaRoute: AuthenticatedDespensaRouteWithChildren,
+  AuthenticatedDietaRoute: AuthenticatedDietaRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
