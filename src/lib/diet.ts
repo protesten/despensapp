@@ -149,6 +149,7 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
       name: string;
       brand: string | null;
       default_unit: string | null;
+      nutrition_relevance: string | null;
       product_nutrition:
         | {
             kcal_per_100g: number | null;
