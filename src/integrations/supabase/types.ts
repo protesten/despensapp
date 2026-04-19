@@ -14,39 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      exchange_foods: {
-        Row: {
-          created_at: string
-          fat: number
-          hc: number
-          id: string
-          name: string
-          prot: number
-          serving_g: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          fat?: number
-          hc?: number
-          id?: string
-          name: string
-          prot?: number
-          serving_g?: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          fat?: number
-          hc?: number
-          id?: string
-          name?: string
-          prot?: number
-          serving_g?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       import_logs: {
         Row: {
           applied_at: string | null
@@ -139,37 +106,49 @@ export type Database = {
       }
       meal_plan_entries: {
         Row: {
+          consumed: boolean
+          consumed_at: string | null
           created_at: string
           fat_total: number
-          food_name: string
+          food_name: string | null
+          grams: number
           hc_total: number
           id: string
           meal_name: string
           plan_date: string
+          product_id: string | null
           prot_total: number
           servings: number
           user_id: string
         }
         Insert: {
+          consumed?: boolean
+          consumed_at?: string | null
           created_at?: string
           fat_total?: number
-          food_name: string
+          food_name?: string | null
+          grams?: number
           hc_total?: number
           id?: string
           meal_name: string
           plan_date: string
+          product_id?: string | null
           prot_total?: number
           servings?: number
           user_id: string
         }
         Update: {
+          consumed?: boolean
+          consumed_at?: string | null
           created_at?: string
           fat_total?: number
-          food_name?: string
+          food_name?: string | null
+          grams?: number
           hc_total?: number
           id?: string
           meal_name?: string
           plan_date?: string
+          product_id?: string | null
           prot_total?: number
           servings?: number
           user_id?: string
