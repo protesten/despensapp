@@ -55,10 +55,17 @@ function ProductDetailPage() {
           ← Productos
         </Button>
         <div className="flex gap-2 shrink-0">
-          <Button size="sm" variant="outline" asChild>
-            <Link to="/despensa/productos/$productId/editar" params={{ productId: p.id }}>
-              ✏️ Editar
-            </Link>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              navigate({
+                to: "/despensa/productos/$productId/editar",
+                params: { productId: p.id },
+              })
+            }
+          >
+            ✏️ Editar
           </Button>
           <Button size="sm" variant="destructive" onClick={handleDelete}>Eliminar</Button>
         </div>

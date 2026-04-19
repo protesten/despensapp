@@ -371,7 +371,16 @@ Devuelve la respuesta llamando a la herramienta "propose_meal".`;
                 );
                 continue;
               }
-              const grams = Math.max(1, Math.round(Number(item.grams) || 0));
+              const rawGrams = Math.max(1, Math.round(Number(item.grams) || 0));
+              // Snap a múltiplos exactos del serving_size_value si está definido.
+              const sv =
+                match.serving_size_value && match.serving_size_value > 0
+                  ? Number(match.serving_size_value)
+                  : 0;
+              const grams =
+                sv > 0
+                  ? Math.max(sv, Math.round(rawGrams / sv) * sv)
+                  : rawGrams;
               if (grams <= 0) continue;
               validatedItems.push({
                 product_id: match.product_id,

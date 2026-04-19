@@ -53,9 +53,10 @@ export const Route = createFileRoute("/_authenticated/dieta")({
 
 function DietPage() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Dieta" />
-      <main className="px-4 py-4 max-w-5xl mx-auto">
+      <main className="px-4 py-4 max-w-5xl mx-auto space-y-4">
+        <AppNav />
         <Tabs defaultValue="planner">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="planner">📅 Planificador</TabsTrigger>
@@ -69,7 +70,6 @@ function DietPage() {
           </TabsContent>
         </Tabs>
       </main>
-      <AppNav />
     </div>
   );
 }
