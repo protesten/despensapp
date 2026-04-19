@@ -125,7 +125,6 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
         name,
         brand,
         default_unit,
-        nutrition_relevance,
         product_nutrition (
           kcal_per_100g,
           carbs_per_100g,
@@ -135,8 +134,7 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
       )
       `,
     )
-    .eq("status", "available")
-    .neq("products.nutrition_relevance", "ignore");
+    .eq("status", "available");
 
   if (error) throw error;
 
@@ -149,7 +147,6 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
       name: string;
       brand: string | null;
       default_unit: string | null;
-      nutrition_relevance: string | null;
       product_nutrition:
         | {
             kcal_per_100g: number | null;
