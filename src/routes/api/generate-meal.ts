@@ -12,6 +12,9 @@ interface AvailableProductPayload {
   carbs_per_100g: number | null;
   protein_per_100g: number | null;
   fat_per_100g: number | null;
+  serving_size_value?: number | null;
+  serving_size_unit?: string | null;
+  servings_per_package?: number | null;
 }
 
 interface GenerateMealRequest {
@@ -111,7 +114,12 @@ export const Route = createFileRoute("/api/generate-meal")({
           const productLines = body.products
             .map((p) => {
               const brand = p.brand ? ` (${p.brand})` : "";
-              return `- "${p.name}"${brand} | kcal/100g: ${p.kcal_per_100g ?? 0}, HC: ${p.carbs_per_100g ?? 0}g, Prot: ${p.protein_per_100g ?? 0}g, Grasa: ${p.fat_per_100g ?? 0}g | disponible: ${Math.round(p.available_grams)}g`;
+              const servingUnit = p.serving_size_unit || "g";
+              const portionInfo =
+                p.serving_size_value && p.serving_size_value > 0
+                  ? ` | porción: ${p.serving_size_value}${servingUnit} (USAR MÚLTIPLOS EXACTOS: ${p.serving_size_value}, ${p.serving_size_value * 2}, ${p.serving_size_value * 3}...)${p.servings_per_package ? ` | ${p.servings_per_package} porciones/envase` : ""}`
+                  : " | porción: libre (no definida)";
+              return `- "${p.name}"${brand} | kcal/100g: ${p.kcal_per_100g ?? 0}, HC: ${p.carbs_per_100g ?? 0}g, Prot: ${p.protein_per_100g ?? 0}g, Grasa: ${p.fat_per_100g ?? 0}g | disponible: ${Math.round(p.available_grams)}g${portionInfo}`;
             })
             .join("\n");
 
@@ -170,7 +178,9 @@ Reglas:
 - La combinación debe tener sentido como plato real.
 - No excedas la cantidad disponible de cada producto.
 - "grams" debe ser un número entero positivo.
-- Antes de responder, SUMA mentalmente los intercambios de cada ingrediente y verifica que el total cuadra con el objetivo dentro de ±0.3 por macro. Si no cuadra, ajusta los gramos.
+- Respeta SIEMPRE el tamaño de porción de cada producto. Los gramos deben ser MÚLTIPLOS EXACTOS del serving_size_value indicado entre paréntesis (por ejemplo si la porción es 30g, válidos son 30, 60, 90, 120... pero NUNCA 45 o 75). Si la porción es "libre", puedes usar cualquier número entero.
+- Para productos con porción definida, calcula primero los gramos ideales con la fórmula y luego REDONDEA al múltiplo más cercano del serving_size_value (mínimo 1 porción).
+- Antes de responder, SUMA mentalmente los intercambios de cada ingrediente y verifica que el total cuadra con el objetivo dentro de ±0.3 por macro. Si no cuadra, ajusta los gramos en saltos de 1 porción completa.
 
 Devuelve la respuesta llamando a la herramienta "propose_meal".`;
 
@@ -361,7 +371,16 @@ Devuelve la respuesta llamando a la herramienta "propose_meal".`;
                 );
                 continue;
               }
-              const grams = Math.max(1, Math.round(Number(item.grams) || 0));
+              const rawGrams = Math.max(1, Math.round(Number(item.grams) || 0));
+              // Snap a múltiplos exactos del serving_size_value si está definido.
+              const sv =
+                match.serving_size_value && match.serving_size_value > 0
+                  ? Number(match.serving_size_value)
+                  : 0;
+              const grams =
+                sv > 0
+                  ? Math.max(sv, Math.round(rawGrams / sv) * sv)
+                  : rawGrams;
               if (grams <= 0) continue;
               validatedItems.push({
                 product_id: match.product_id,
