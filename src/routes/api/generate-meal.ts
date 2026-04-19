@@ -174,118 +174,6 @@ Reglas:
 
 Devuelve la respuesta llamando a la herramienta "propose_meal".`;
 
-          const aiResponse = await fetchWithRetries(GATEWAY_URL, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: body.model || DEFAULT_MODEL,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt },
-              ],
-              tools: [
-                {
-                  type: "function",
-                  function: {
-                    name: "propose_meal",
-                    description:
-                      "Propone una receta culinaria coherente con los ingredientes disponibles.",
-                    parameters: {
-                      type: "object",
-                      properties: {
-                        recipe_name: {
-                          type: "string",
-                          description: "Nombre descriptivo del plato.",
-                        },
-                        items: {
-                          type: "array",
-                          minItems: 1,
-                          maxItems: 6,
-                          items: {
-                            type: "object",
-                            properties: {
-                              product_name: { type: "string" },
-                              grams: { type: "number" },
-                            },
-                            required: ["product_name", "grams"],
-                            additionalProperties: false,
-                          },
-                        },
-                      },
-                      required: ["recipe_name", "items"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-              ],
-              tool_choice: {
-                type: "function",
-                function: { name: "propose_meal" },
-              },
-            }),
-          });
-
-          if (!aiResponse.ok) {
-            if (aiResponse.status === 429) {
-              return Response.json(
-                {
-                  error:
-                    "Has alcanzado el límite de peticiones a la IA. Inténtalo en unos segundos.",
-                },
-                { status: 429 },
-              );
-            }
-            if (aiResponse.status === 402) {
-              return Response.json(
-                {
-                  error:
-                    "Sin créditos de IA. Añade saldo en Settings → Workspace → Usage.",
-                },
-                { status: 402 },
-              );
-            }
-            const txt = await aiResponse.text();
-            console.error("AI gateway error", aiResponse.status, txt);
-            return Response.json(
-              { error: "Error del servicio de IA" },
-              { status: 500 },
-            );
-          }
-
-          const aiJson = (await aiResponse.json()) as {
-            choices?: Array<{
-              message?: {
-                tool_calls?: Array<{
-                  function?: { name?: string; arguments?: string };
-                }>;
-              };
-            }>;
-          };
-
-          const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-          const argsStr = toolCall?.function?.arguments;
-          if (!argsStr) {
-            console.error("AI response missing tool call", aiJson);
-            return Response.json(
-              { error: "La IA no devolvió una propuesta válida" },
-              { status: 502 },
-            );
-          }
-
-          let parsed: GeneratedMeal;
-          try {
-            parsed = JSON.parse(argsStr) as GeneratedMeal;
-          } catch (e) {
-            console.error("AI tool call args parse error", e, argsStr);
-            return Response.json(
-              { error: "La IA devolvió JSON inválido" },
-              { status: 502 },
-            );
-          }
-
           // Matching: exacto normalizado → parcial (includes en ambas direcciones)
           const norm = (s: string) =>
             s
@@ -319,41 +207,242 @@ Devuelve la respuesta llamando a la herramienta "propose_meal".`;
             return best;
           };
 
-          const validatedItems: Array<{
+          const TOLERANCE = 0.3;
+          const MAX_VALIDATION_ATTEMPTS = 3; // 1 inicial + 2 reintentos
+
+          type ValidatedItem = {
             product_id: string;
             product_name: string;
             grams: number;
-          }> = [];
-          for (const item of parsed.items ?? []) {
-            const match = findMatch(item.product_name);
-            if (!match) {
-              console.warn(
-                `[generate-meal] producto ignorado (sin match en stock): "${item.product_name}"`,
-              );
-              continue;
-            }
-            const grams = Math.max(1, Math.round(Number(item.grams) || 0));
-            if (grams <= 0) continue;
-            validatedItems.push({
-              product_id: match.product_id,
-              product_name: match.name,
-              grams,
+          };
+          type AttemptResult = {
+            recipe_name: string;
+            items: ValidatedItem[];
+            totals: { hc: number; prot: number; fat: number };
+            diff: number;
+            withinTolerance: boolean;
+          };
+
+          let bestAttempt: AttemptResult | null = null;
+          let extraFeedback = "";
+
+          for (let attempt = 1; attempt <= MAX_VALIDATION_ATTEMPTS; attempt++) {
+            const finalUserPrompt = userPrompt + extraFeedback;
+
+            const aiResponse = await fetchWithRetries(GATEWAY_URL, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: body.model || DEFAULT_MODEL,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: finalUserPrompt },
+                ],
+                tools: [
+                  {
+                    type: "function",
+                    function: {
+                      name: "propose_meal",
+                      description:
+                        "Propone una receta culinaria coherente con los ingredientes disponibles.",
+                      parameters: {
+                        type: "object",
+                        properties: {
+                          recipe_name: {
+                            type: "string",
+                            description: "Nombre descriptivo del plato.",
+                          },
+                          items: {
+                            type: "array",
+                            minItems: 1,
+                            maxItems: 6,
+                            items: {
+                              type: "object",
+                              properties: {
+                                product_name: { type: "string" },
+                                grams: { type: "number" },
+                              },
+                              required: ["product_name", "grams"],
+                              additionalProperties: false,
+                            },
+                          },
+                        },
+                        required: ["recipe_name", "items"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                ],
+                tool_choice: {
+                  type: "function",
+                  function: { name: "propose_meal" },
+                },
+              }),
             });
+
+            if (!aiResponse.ok) {
+              if (aiResponse.status === 429) {
+                return Response.json(
+                  {
+                    error:
+                      "Has alcanzado el límite de peticiones a la IA. Inténtalo en unos segundos.",
+                  },
+                  { status: 429 },
+                );
+              }
+              if (aiResponse.status === 402) {
+                return Response.json(
+                  {
+                    error:
+                      "Sin créditos de IA. Añade saldo en Settings → Workspace → Usage.",
+                  },
+                  { status: 402 },
+                );
+              }
+              const txt = await aiResponse.text();
+              console.error("AI gateway error", aiResponse.status, txt);
+              return Response.json(
+                { error: "Error del servicio de IA" },
+                { status: 500 },
+              );
+            }
+
+            const aiJson = (await aiResponse.json()) as {
+              choices?: Array<{
+                message?: {
+                  tool_calls?: Array<{
+                    function?: { name?: string; arguments?: string };
+                  }>;
+                };
+              }>;
+            };
+
+            const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
+            const argsStr = toolCall?.function?.arguments;
+            if (!argsStr) {
+              console.error("AI response missing tool call", aiJson);
+              if (attempt < MAX_VALIDATION_ATTEMPTS) {
+                extraFeedback =
+                  "\n\nEn el intento anterior no devolviste una llamada válida a la herramienta. Devuelve OBLIGATORIAMENTE la respuesta llamando a propose_meal.";
+                continue;
+              }
+              return Response.json(
+                { error: "La IA no devolvió una propuesta válida" },
+                { status: 502 },
+              );
+            }
+
+            let parsed: GeneratedMeal;
+            try {
+              parsed = JSON.parse(argsStr) as GeneratedMeal;
+            } catch (e) {
+              console.error("AI tool call args parse error", e, argsStr);
+              if (attempt < MAX_VALIDATION_ATTEMPTS) {
+                extraFeedback =
+                  "\n\nEn el intento anterior devolviste JSON inválido. Asegúrate de devolver JSON válido a través de la herramienta propose_meal.";
+                continue;
+              }
+              return Response.json(
+                { error: "La IA devolvió JSON inválido" },
+                { status: 502 },
+              );
+            }
+
+            const validatedItems: ValidatedItem[] = [];
+            const totals = { hc: 0, prot: 0, fat: 0 };
+            for (const item of parsed.items ?? []) {
+              const match = findMatch(item.product_name);
+              if (!match) {
+                console.warn(
+                  `[generate-meal] producto ignorado (sin match en stock): "${item.product_name}"`,
+                );
+                continue;
+              }
+              const grams = Math.max(1, Math.round(Number(item.grams) || 0));
+              if (grams <= 0) continue;
+              validatedItems.push({
+                product_id: match.product_id,
+                product_name: match.name,
+                grams,
+              });
+              const factor = grams / 10000;
+              totals.hc += Number(match.carbs_per_100g ?? 0) * 4 * factor;
+              totals.prot += Number(match.protein_per_100g ?? 0) * 4 * factor;
+              totals.fat += Number(match.fat_per_100g ?? 0) * 9 * factor;
+            }
+
+            if (validatedItems.length === 0) {
+              if (attempt < MAX_VALIDATION_ATTEMPTS) {
+                extraFeedback = `\n\nEn el intento anterior propusiste productos que no están en mi stock. Usa SOLO nombres de esta lista: ${exactNamesList}.`;
+                continue;
+              }
+              return Response.json(
+                {
+                  error:
+                    "La IA propuso productos que no están en tu stock. Inténtalo de nuevo.",
+                },
+                { status: 502 },
+              );
+            }
+
+            const round2 = (n: number) => Math.round(n * 100) / 100;
+            totals.hc = round2(totals.hc);
+            totals.prot = round2(totals.prot);
+            totals.fat = round2(totals.fat);
+
+            const dHc = totals.hc - body.target.hc;
+            const dProt = totals.prot - body.target.prot;
+            const dFat = totals.fat - body.target.fat;
+            const withinTolerance =
+              Math.abs(dHc) <= TOLERANCE &&
+              Math.abs(dProt) <= TOLERANCE &&
+              Math.abs(dFat) <= TOLERANCE;
+            const diff = Math.abs(dHc) + Math.abs(dProt) + Math.abs(dFat);
+
+            const candidate: AttemptResult = {
+              recipe_name: parsed.recipe_name || body.meal_name,
+              items: validatedItems,
+              totals,
+              diff,
+              withinTolerance,
+            };
+
+            console.log(
+              `[generate-meal] intento ${attempt}: HC=${totals.hc}/${body.target.hc} Prot=${totals.prot}/${body.target.prot} Fat=${totals.fat}/${body.target.fat} (within=${withinTolerance})`,
+            );
+
+            if (!bestAttempt || candidate.diff < bestAttempt.diff) {
+              bestAttempt = candidate;
+            }
+
+            if (withinTolerance) break;
+
+            if (attempt < MAX_VALIDATION_ATTEMPTS) {
+              const fmt = (n: number) =>
+                (n >= 0 ? "+" : "") + n.toFixed(2);
+              extraFeedback = `\n\nEn el intento anterior propusiste estos gramos:
+${validatedItems.map((it) => `- "${it.product_name}": ${it.grams}g`).join("\n")}
+La suma resultante fue HC=${totals.hc}, Prot=${totals.prot}, Grasa=${totals.fat}.
+Desviación respecto al objetivo (objetivo - actual): HC=${fmt(-dHc)}, Prot=${fmt(-dProt)}, Grasa=${fmt(-dFat)}.
+AJUSTA los gramos (o añade/quita ingredientes) para que la suma se quede dentro de ±${TOLERANCE} en CADA macro respecto al objetivo (HC=${body.target.hc}, Prot=${body.target.prot}, Grasa=${body.target.fat}). Aplica la fórmula gramos = (intercambios_deseados × 10000) / kcal_per_100g.`;
+            }
           }
 
-          if (validatedItems.length === 0) {
+          if (!bestAttempt) {
             return Response.json(
-              {
-                error:
-                  "La IA propuso productos que no están en tu stock. Inténtalo de nuevo.",
-              },
+              { error: "La IA no devolvió una propuesta válida" },
               { status: 502 },
             );
           }
 
           return Response.json({
-            recipe_name: parsed.recipe_name || body.meal_name,
-            items: validatedItems,
+            recipe_name: bestAttempt.recipe_name,
+            items: bestAttempt.items,
+            totals: bestAttempt.totals,
+            within_tolerance: bestAttempt.withinTolerance,
           });
         } catch (e) {
           console.error("generate-meal error", e);
