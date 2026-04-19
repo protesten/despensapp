@@ -577,7 +577,14 @@ function TargetsTab() {
     try {
       const t = await fetchMealTargets();
       setTargets(t);
-      const merged = DEFAULT_MEALS.map((dm) => {
+      type Row = {
+        meal_name: string;
+        meal_order: number;
+        target_hc: string;
+        target_prot: string;
+        target_fat: string;
+      };
+      const merged: Row[] = DEFAULT_MEALS.map((dm) => {
         const ex = t.find((x) => x.meal_name === dm.meal_name);
         return {
           meal_name: dm.meal_name,
