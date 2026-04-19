@@ -263,10 +263,38 @@ Devuelve la respuesta llamando a la herramienta "propose_meal".`;
             );
           }
 
-          // Map de productos por nombre normalizado
-          const norm = (s: string) => s.trim().toLowerCase();
+          // Matching: exacto normalizado → parcial (includes en ambas direcciones)
+          const norm = (s: string) =>
+            s
+              .trim()
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "");
           const byName = new Map<string, AvailableProductPayload>();
           for (const p of body.products) byName.set(norm(p.name), p);
+
+          const findMatch = (
+            proposedName: string,
+          ): AvailableProductPayload | null => {
+            const key = norm(proposedName);
+            if (!key) return null;
+            const exact = byName.get(key);
+            if (exact) return exact;
+            let best: AvailableProductPayload | null = null;
+            let bestScore = 0;
+            for (const p of body.products) {
+              const n = norm(p.name);
+              if (!n) continue;
+              if (key.includes(n) || n.includes(key)) {
+                const score = Math.min(n.length, key.length);
+                if (score > bestScore) {
+                  bestScore = score;
+                  best = p;
+                }
+              }
+            }
+            return best;
+          };
 
           const validatedItems: Array<{
             product_id: string;
@@ -274,8 +302,13 @@ Devuelve la respuesta llamando a la herramienta "propose_meal".`;
             grams: number;
           }> = [];
           for (const item of parsed.items ?? []) {
-            const match = byName.get(norm(item.product_name));
-            if (!match) continue; // descartar items que no encajen con el catálogo
+            const match = findMatch(item.product_name);
+            if (!match) {
+              console.warn(
+                `[generate-meal] producto ignorado (sin match en stock): "${item.product_name}"`,
+              );
+              continue;
+            }
             const grams = Math.max(1, Math.round(Number(item.grams) || 0));
             if (grams <= 0) continue;
             validatedItems.push({
