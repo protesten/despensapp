@@ -181,6 +181,9 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
       ? p.product_nutrition[0] ?? null
       : p.product_nutrition;
 
+    // Excluir productos sin calorías registradas (no se pueden calcular intercambios)
+    if (!nut?.kcal_per_100g || Number(nut.kcal_per_100g) <= 0) continue;
+
     const existing = map.get(p.id);
     if (existing) {
       existing.available_grams += grams;
@@ -191,10 +194,10 @@ export async function fetchAvailableProducts(): Promise<AvailableProduct[]> {
         brand: p.brand,
         default_unit: p.default_unit,
         available_grams: grams,
-        kcal_per_100g: nut?.kcal_per_100g ?? null,
-        carbs_per_100g: nut?.carbs_per_100g ?? null,
-        protein_per_100g: nut?.protein_per_100g ?? null,
-        fat_per_100g: nut?.fat_per_100g ?? null,
+        kcal_per_100g: nut.kcal_per_100g,
+        carbs_per_100g: nut.carbs_per_100g ?? null,
+        protein_per_100g: nut.protein_per_100g ?? null,
+        fat_per_100g: nut.fat_per_100g ?? null,
       });
     }
   }
