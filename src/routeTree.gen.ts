@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiGenerateMealRouteImport } from './routes/api/generate-meal'
 import { Route as AuthenticatedDietaRouteImport } from './routes/_authenticated/dieta'
 import { Route as AuthenticatedDespensaRouteImport } from './routes/_authenticated/despensa'
 import { Route as AuthenticatedDespensaIndexRouteImport } from './routes/_authenticated/despensa.index'
@@ -39,6 +40,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGenerateMealRoute = ApiGenerateMealRouteImport.update({
+  id: '/api/generate-meal',
+  path: '/api/generate-meal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDietaRoute = AuthenticatedDietaRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/despensa': typeof AuthenticatedDespensaRouteWithChildren
   '/dieta': typeof AuthenticatedDietaRoute
+  '/api/generate-meal': typeof ApiGenerateMealRoute
   '/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/despensa/importar': typeof AuthenticatedDespensaImportarRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dieta': typeof AuthenticatedDietaRoute
+  '/api/generate-meal': typeof ApiGenerateMealRoute
   '/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/despensa/importar': typeof AuthenticatedDespensaImportarRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/despensa': typeof AuthenticatedDespensaRouteWithChildren
   '/_authenticated/dieta': typeof AuthenticatedDietaRoute
+  '/api/generate-meal': typeof ApiGenerateMealRoute
   '/_authenticated/despensa/auditoria': typeof AuthenticatedDespensaAuditoriaRoute
   '/_authenticated/despensa/exportar': typeof AuthenticatedDespensaExportarRoute
   '/_authenticated/despensa/importar': typeof AuthenticatedDespensaImportarRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/despensa'
     | '/dieta'
+    | '/api/generate-meal'
     | '/despensa/auditoria'
     | '/despensa/exportar'
     | '/despensa/importar'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/dieta'
+    | '/api/generate-meal'
     | '/despensa/auditoria'
     | '/despensa/exportar'
     | '/despensa/importar'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/despensa'
     | '/_authenticated/dieta'
+    | '/api/generate-meal'
     | '/_authenticated/despensa/auditoria'
     | '/_authenticated/despensa/exportar'
     | '/_authenticated/despensa/importar'
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiGenerateMealRoute: typeof ApiGenerateMealRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate-meal': {
+      id: '/api/generate-meal'
+      path: '/api/generate-meal'
+      fullPath: '/api/generate-meal'
+      preLoaderRoute: typeof ApiGenerateMealRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dieta': {
@@ -446,16 +466,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiGenerateMealRoute: ApiGenerateMealRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
