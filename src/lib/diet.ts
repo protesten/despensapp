@@ -292,6 +292,124 @@ export async function markEntryConsumed(id: string, consumed: boolean): Promise<
   // del stock disponible (FIFO por fecha de caducidad).
 }
 
+// ---------- AI generation ----------
+
+export interface AIGeneratedItem {
+  product_id: string;
+  product_name: string;
+  grams: number;
+}
+
+export interface AIGeneratedMeal {
+  recipe_name: string;
+  items: AIGeneratedItem[];
+}
+
+export async function generateMealWithAI(params: {
+  meal_name: string;
+  target: { hc: number; prot: number; fat: number };
+  products: AvailableProduct[];
+  avoid_product_names?: string[];
+  exclude_product_names?: string[];
+}): Promise<AIGeneratedMeal> {
+  const res = await fetch("/api/generate-meal", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      meal_name: params.meal_name,
+      target: params.target,
+      products: params.products.map((p) => ({
+        product_id: p.product_id,
+        name: p.name,
+        brand: p.brand,
+        available_grams: p.available_grams,
+        kcal_per_100g: p.kcal_per_100g,
+        carbs_per_100g: p.carbs_per_100g,
+        protein_per_100g: p.protein_per_100g,
+        fat_per_100g: p.fat_per_100g,
+      })),
+      avoid_product_names: params.avoid_product_names,
+      exclude_product_names: params.exclude_product_names,
+    }),
+  });
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || `Error IA (${res.status})`);
+  }
+  return (await res.json()) as AIGeneratedMeal;
+}
+
+/**
+ * Borra todas las entradas de una comida concreta de un día y crea las nuevas
+ * a partir del resultado de la IA. Calcula los intercambios usando los datos
+ * nutricionales actualizados de cada producto.
+ */
+export async function replaceMealEntries(params: {
+  plan_date: string;
+  meal_name: string;
+  items: AIGeneratedItem[];
+  recipe_name: string;
+  products: AvailableProduct[];
+}): Promise<void> {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) throw new Error("No autenticado");
+
+  // Borra las entradas actuales de esa comida/día
+  const { error: delErr } = await supabase
+    .from("meal_plan_entries")
+    .delete()
+    .eq("plan_date", params.plan_date)
+    .eq("meal_name", params.meal_name);
+  if (delErr) throw delErr;
+
+  if (params.items.length === 0) return;
+
+  const productMap = new Map(params.products.map((p) => [p.product_id, p]));
+  const rows = params.items.map((item) => {
+    const p = productMap.get(item.product_id);
+    const ex = p
+      ? calculateExchanges(
+          item.grams,
+          p.kcal_per_100g,
+          p.carbs_per_100g,
+          p.protein_per_100g,
+          p.fat_per_100g,
+        )
+      : { hc: 0, prot: 0, fat: 0 };
+    return {
+      user_id: u.user!.id,
+      plan_date: params.plan_date,
+      meal_name: params.meal_name,
+      product_id: item.product_id,
+      food_name: `${params.recipe_name} · ${item.product_name}`,
+      grams: item.grams,
+      hc_total: ex.hc,
+      prot_total: ex.prot,
+      fat_total: ex.fat,
+      servings: 1,
+    };
+  });
+
+  const { error: insErr } = await supabase
+    .from("meal_plan_entries")
+    .insert(rows);
+  if (insErr) throw insErr;
+}
+
+/** Extrae el nombre de receta de un food_name con formato "Receta · Ingrediente". */
+export function extractRecipeName(food_name: string | null): string | null {
+  if (!food_name) return null;
+  const idx = food_name.indexOf(" · ");
+  return idx === -1 ? null : food_name.slice(0, idx);
+}
+
+/** Extrae el nombre del ingrediente de un food_name con formato "Receta · Ingrediente". */
+export function extractIngredientName(food_name: string | null): string {
+  if (!food_name) return "";
+  const idx = food_name.indexOf(" · ");
+  return idx === -1 ? food_name : food_name.slice(idx + 3);
+}
+
 // ---------- Helpers ----------
 
 export function getWeekDates(reference: Date = new Date()): string[] {
