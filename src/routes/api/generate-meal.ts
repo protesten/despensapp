@@ -70,6 +70,10 @@ export const Route = createFileRoute("/api/generate-meal")({
             })
             .join("\n");
 
+          const exactNamesList = body.products
+            .map((p) => `"${p.name}"`)
+            .join(", ");
+
           const avoidLine =
             body.avoid_product_names && body.avoid_product_names.length > 0
               ? `\nNo repitas estos productos usados el día anterior en esta misma comida: ${body.avoid_product_names.map((n) => `"${n}"`).join(", ")}.`
