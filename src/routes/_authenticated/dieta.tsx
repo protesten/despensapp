@@ -299,23 +299,23 @@ function PlannerTab() {
   const runGenerateDay = async (date: string) => {
     const key = `day:${date}`;
     setBusyKey(key);
-    let okCount = 0;
-    for (const meal of DEFAULT_MEALS) {
+    const mealsToGenerate = DEFAULT_MEALS.filter((meal) => {
       const t = targets.find((x) => x.meal_name === meal.meal_name);
-      if (
-        !t ||
-        (Number(t.target_hc) === 0 &&
+      return (
+        t &&
+        !(
+          Number(t.target_hc) === 0 &&
           Number(t.target_prot) === 0 &&
-          Number(t.target_fat) === 0)
-      )
-        continue;
-      const ok = await generateOneMeal(date, meal.meal_name);
-      if (ok) {
-        okCount++;
-        // Refresca entries entre comidas para que la IA del día siguiente vea
-        // los cambios del día anterior; refrescamos solo después del bucle.
-      }
-    }
+          Number(t.target_fat) === 0
+        )
+      );
+    });
+    // Generación en paralelo: cada comida se persiste en Supabase en cuanto la
+    // IA responde (replaceMealEntries hace insert inmediato), sin esperar a las demás.
+    const results = await Promise.all(
+      mealsToGenerate.map((meal) => generateOneMeal(date, meal.meal_name)),
+    );
+    const okCount = results.filter(Boolean).length;
     setBusyKey(null);
     if (okCount > 0) toast.success(`Día generado (${okCount} comidas)`);
     load();
