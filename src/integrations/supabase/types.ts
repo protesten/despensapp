@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      exchange_foods: {
+        Row: {
+          created_at: string
+          fat: number
+          hc: number
+          id: string
+          name: string
+          prot: number
+          serving_g: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fat?: number
+          hc?: number
+          id?: string
+          name: string
+          prot?: number
+          serving_g?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fat?: number
+          hc?: number
+          id?: string
+          name?: string
+          prot?: number
+          serving_g?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       import_logs: {
         Row: {
           applied_at: string | null
@@ -103,6 +136,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      meal_plan_entries: {
+        Row: {
+          created_at: string
+          fat_total: number
+          food_name: string
+          hc_total: number
+          id: string
+          meal_name: string
+          plan_date: string
+          prot_total: number
+          servings: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fat_total?: number
+          food_name: string
+          hc_total?: number
+          id?: string
+          meal_name: string
+          plan_date: string
+          prot_total?: number
+          servings?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fat_total?: number
+          food_name?: string
+          hc_total?: number
+          id?: string
+          meal_name?: string
+          plan_date?: string
+          prot_total?: number
+          servings?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meal_targets: {
+        Row: {
+          created_at: string
+          id: string
+          meal_name: string
+          meal_order: number
+          target_fat: number
+          target_hc: number
+          target_prot: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meal_name: string
+          meal_order?: number
+          target_fat?: number
+          target_hc?: number
+          target_prot?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meal_name?: string
+          meal_order?: number
+          target_fat?: number
+          target_hc?: number
+          target_prot?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       product_nutrition: {
         Row: {
