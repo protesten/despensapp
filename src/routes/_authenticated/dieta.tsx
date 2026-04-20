@@ -55,12 +55,16 @@ function DietPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader title="Dieta" />
-      <main className="px-4 py-4 max-w-5xl mx-auto space-y-4">
+      <main className="mx-auto max-w-5xl space-y-4 overflow-x-hidden px-3 py-4 sm:px-4">
         <AppNav />
         <Tabs defaultValue="planner">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="planner">📅 Planificador</TabsTrigger>
-            <TabsTrigger value="targets">🎯 Objetivos</TabsTrigger>
+          <TabsList className="grid w-full min-w-0 grid-cols-2">
+            <TabsTrigger value="planner" className="min-w-0 text-xs sm:text-sm">
+              📅 Planificador
+            </TabsTrigger>
+            <TabsTrigger value="targets" className="min-w-0 text-xs sm:text-sm">
+              🎯 Objetivos
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="planner" className="mt-4">
             <PlannerTab />
@@ -386,10 +390,14 @@ function PlannerTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:justify-between">
+        <p className="col-span-2 text-center text-sm font-medium sm:order-none sm:col-span-1">
+          {formatDayLabel(weekDates[0])} – {formatDayLabel(weekDates[6])}
+        </p>
         <Button
           size="sm"
           variant="outline"
+          className="min-w-0 text-xs sm:text-sm"
           onClick={() => {
             const d = new Date(weekRef);
             d.setDate(d.getDate() - 7);
@@ -398,12 +406,10 @@ function PlannerTab() {
         >
           ← Semana anterior
         </Button>
-        <p className="text-sm font-medium">
-          {formatDayLabel(weekDates[0])} – {formatDayLabel(weekDates[6])}
-        </p>
         <Button
           size="sm"
           variant="outline"
+          className="min-w-0 text-xs sm:text-sm"
           onClick={() => {
             const d = new Date(weekRef);
             d.setDate(d.getDate() + 7);
@@ -415,7 +421,7 @@ function PlannerTab() {
       </div>
 
       <Button
-        className="w-full"
+        className="w-full whitespace-normal text-center leading-tight"
         size="lg"
         onClick={handleGenerateWeek}
         disabled={busyKey !== null || products.length === 0}
