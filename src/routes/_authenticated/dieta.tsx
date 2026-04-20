@@ -534,10 +534,10 @@ function DayPlan({
   const anyBusy = busyKey !== null;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center justify-between gap-2 flex-wrap">
-          <span className="flex items-center gap-2">
+    <Card className="overflow-hidden rounded-lg">
+      <CardHeader className="px-3 pb-2 pt-3 sm:px-6 sm:pt-6">
+        <CardTitle className="flex min-w-0 flex-col gap-2 text-base sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex min-w-0 flex-wrap items-center gap-2 break-words">
             {formatDayLabel(date)}
             <Button
               size="sm"
@@ -556,13 +556,13 @@ function DayPlan({
               )}
             </Button>
           </span>
-          <span className="text-xs font-normal text-muted-foreground">
+          <span className="text-xs font-normal leading-relaxed text-muted-foreground">
             HC {dayTotals.hc.toFixed(1)} · Prot {dayTotals.prot.toFixed(1)} · Gr{" "}
             {dayTotals.fat.toFixed(1)}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-3 pb-3 sm:px-6 sm:pb-6">
         {DEFAULT_MEALS.map((meal) => {
           const mealEntries = entries.filter(
             (e) => e.meal_name === meal.meal_name,
@@ -594,10 +594,10 @@ function DayPlan({
             busyKey === `meal:${date}:${meal.meal_name}` || dayBusy;
 
           return (
-            <div key={meal.meal_name} className="border-l-2 border-muted pl-3">
-              <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                <p className="text-sm font-medium flex items-center gap-1">
-                  {meal.meal_name}
+            <div key={meal.meal_name} className="min-w-0 border-l-2 border-muted pl-2 sm:pl-3">
+              <div className="mb-1 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-1 text-sm font-medium">
+                  <span className="min-w-0 break-words">{meal.meal_name}</span>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -626,9 +626,9 @@ function DayPlan({
                   )}
                   {status === "ok" && <span>✅</span>}
                   {status === "warn" && <span>⚠️</span>}
-                </p>
+                </div>
                 {target && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {totals.hc.toFixed(1)}/{target.target_hc} HC ·{" "}
                     {totals.prot.toFixed(1)}/{target.target_prot} P ·{" "}
                     {totals.fat.toFixed(1)}/{target.target_fat} G
@@ -637,7 +637,9 @@ function DayPlan({
               </div>
 
               {recipeName && (
-                <p className="text-sm font-semibold mb-1">{recipeName}</p>
+                <p className="mb-1 min-w-0 break-words text-sm font-semibold leading-snug">
+                  {recipeName}
+                </p>
               )}
 
               <div className="space-y-1 mb-2">
