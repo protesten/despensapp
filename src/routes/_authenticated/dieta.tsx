@@ -651,31 +651,37 @@ function DayPlan({
                   return (
                     <div
                       key={e.id}
-                      className="flex items-center justify-between gap-2 text-xs bg-muted/30 rounded px-2 py-1"
+                      className="flex items-start justify-between gap-2 rounded bg-muted/30 px-2 py-2 text-xs"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex min-w-0 flex-1 items-start gap-2">
                         <input
                           type="checkbox"
                           checked={e.consumed}
                           onChange={() => onToggleConsumed(e.id, e.consumed)}
-                          className="shrink-0"
+                          className="mt-0.5 shrink-0"
                           title="Marcar como consumida"
                         />
-                        <span
-                          className={`truncate ${e.consumed ? "line-through text-muted-foreground" : ""}`}
-                        >
-                          {ingredient} · {Number(e.grams).toFixed(0)}g
-                        </span>
-                        <Badge variant="outline" className="shrink-0">
-                          {Number(e.hc_total).toFixed(1)}/
-                          {Number(e.prot_total).toFixed(1)}/
-                          {Number(e.fat_total).toFixed(1)}
-                        </Badge>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p
+                            className={`break-words leading-snug ${e.consumed ? "line-through text-muted-foreground" : ""}`}
+                          >
+                            {ingredient}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
+                            <span>{Number(e.grams).toFixed(0)}g</span>
+                            <span>·</span>
+                            <span>{Number(e.hc_total).toFixed(1)} HC</span>
+                            <span>·</span>
+                            <span>{Number(e.prot_total).toFixed(1)} P</span>
+                            <span>·</span>
+                            <span>{Number(e.fat_total).toFixed(1)} G</span>
+                          </div>
+                        </div>
                       </div>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 px-2"
+                        className="h-6 shrink-0 px-2"
                         onClick={() => onRemove(e.id)}
                       >
                         ✕
@@ -735,18 +741,22 @@ function AddEntryForm({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex gap-1">
+      <div className="grid grid-cols-[1fr_5rem_2.25rem] gap-1 sm:flex">
         <Select value={productId} onValueChange={setProductId}>
-          <SelectTrigger className="h-8 text-xs flex-1">
+          <SelectTrigger className="col-span-3 min-w-0 text-xs sm:h-8 sm:flex-1">
             <SelectValue placeholder="Producto del stock…" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-w-[calc(100vw-2rem)]">
             {products.map((p) => (
-              <SelectItem key={p.product_id} value={p.product_id}>
-                {p.name}
-                {p.brand ? ` · ${p.brand}` : ""} ·{" "}
-                {p.available_grams.toFixed(0)}g disp.
-                {!p.kcal_per_100g ? " (sin kcal)" : ""}
+              <SelectItem key={p.product_id} value={p.product_id} className="items-start whitespace-normal pr-8">
+                <div className="min-w-0 space-y-0.5 py-0.5 leading-snug">
+                  <p className="break-words">{p.name}</p>
+                  <p className="break-words text-[11px] text-muted-foreground">
+                    {p.brand ? `${p.brand} · ` : ""}
+                    {p.available_grams.toFixed(0)}g disp.
+                    {!p.kcal_per_100g ? " · sin kcal" : ""}
+                  </p>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
