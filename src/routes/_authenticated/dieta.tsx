@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -55,12 +54,16 @@ function DietPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader title="Dieta" />
-      <main className="px-4 py-4 max-w-5xl mx-auto space-y-4">
+      <main className="mx-auto max-w-5xl space-y-4 overflow-x-hidden px-3 py-4 sm:px-4">
         <AppNav />
         <Tabs defaultValue="planner">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="planner">📅 Planificador</TabsTrigger>
-            <TabsTrigger value="targets">🎯 Objetivos</TabsTrigger>
+          <TabsList className="grid w-full min-w-0 grid-cols-2">
+            <TabsTrigger value="planner" className="min-w-0 text-xs sm:text-sm">
+              📅 Planificador
+            </TabsTrigger>
+            <TabsTrigger value="targets" className="min-w-0 text-xs sm:text-sm">
+              🎯 Objetivos
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="planner" className="mt-4">
             <PlannerTab />
@@ -386,10 +389,14 @@ function PlannerTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:justify-between">
+        <p className="col-span-2 text-center text-sm font-medium sm:order-none sm:col-span-1">
+          {formatDayLabel(weekDates[0])} – {formatDayLabel(weekDates[6])}
+        </p>
         <Button
           size="sm"
           variant="outline"
+          className="min-w-0 text-xs sm:text-sm"
           onClick={() => {
             const d = new Date(weekRef);
             d.setDate(d.getDate() - 7);
@@ -398,12 +405,10 @@ function PlannerTab() {
         >
           ← Semana anterior
         </Button>
-        <p className="text-sm font-medium">
-          {formatDayLabel(weekDates[0])} – {formatDayLabel(weekDates[6])}
-        </p>
         <Button
           size="sm"
           variant="outline"
+          className="min-w-0 text-xs sm:text-sm"
           onClick={() => {
             const d = new Date(weekRef);
             d.setDate(d.getDate() + 7);
@@ -415,7 +420,7 @@ function PlannerTab() {
       </div>
 
       <Button
-        className="w-full"
+        className="w-full whitespace-normal text-center leading-tight"
         size="lg"
         onClick={handleGenerateWeek}
         disabled={busyKey !== null || products.length === 0}
@@ -528,10 +533,10 @@ function DayPlan({
   const anyBusy = busyKey !== null;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center justify-between gap-2 flex-wrap">
-          <span className="flex items-center gap-2">
+    <Card className="overflow-hidden rounded-lg">
+      <CardHeader className="px-3 pb-2 pt-3 sm:px-6 sm:pt-6">
+        <CardTitle className="flex min-w-0 flex-col gap-2 text-base sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex min-w-0 flex-wrap items-center gap-2 break-words">
             {formatDayLabel(date)}
             <Button
               size="sm"
@@ -550,13 +555,13 @@ function DayPlan({
               )}
             </Button>
           </span>
-          <span className="text-xs font-normal text-muted-foreground">
+          <span className="text-xs font-normal leading-relaxed text-muted-foreground">
             HC {dayTotals.hc.toFixed(1)} · Prot {dayTotals.prot.toFixed(1)} · Gr{" "}
             {dayTotals.fat.toFixed(1)}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-3 pb-3 sm:px-6 sm:pb-6">
         {DEFAULT_MEALS.map((meal) => {
           const mealEntries = entries.filter(
             (e) => e.meal_name === meal.meal_name,
@@ -588,10 +593,10 @@ function DayPlan({
             busyKey === `meal:${date}:${meal.meal_name}` || dayBusy;
 
           return (
-            <div key={meal.meal_name} className="border-l-2 border-muted pl-3">
-              <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                <p className="text-sm font-medium flex items-center gap-1">
-                  {meal.meal_name}
+            <div key={meal.meal_name} className="min-w-0 border-l-2 border-muted pl-2 sm:pl-3">
+              <div className="mb-1 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-1 text-sm font-medium">
+                  <span className="min-w-0 break-words">{meal.meal_name}</span>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -620,9 +625,9 @@ function DayPlan({
                   )}
                   {status === "ok" && <span>✅</span>}
                   {status === "warn" && <span>⚠️</span>}
-                </p>
+                </div>
                 {target && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {totals.hc.toFixed(1)}/{target.target_hc} HC ·{" "}
                     {totals.prot.toFixed(1)}/{target.target_prot} P ·{" "}
                     {totals.fat.toFixed(1)}/{target.target_fat} G
@@ -631,7 +636,9 @@ function DayPlan({
               </div>
 
               {recipeName && (
-                <p className="text-sm font-semibold mb-1">{recipeName}</p>
+                <p className="mb-1 min-w-0 break-words text-sm font-semibold leading-snug">
+                  {recipeName}
+                </p>
               )}
 
               <div className="space-y-1 mb-2">
@@ -643,31 +650,37 @@ function DayPlan({
                   return (
                     <div
                       key={e.id}
-                      className="flex items-center justify-between gap-2 text-xs bg-muted/30 rounded px-2 py-1"
+                      className="flex items-start justify-between gap-2 rounded bg-muted/30 px-2 py-2 text-xs"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex min-w-0 flex-1 items-start gap-2">
                         <input
                           type="checkbox"
                           checked={e.consumed}
                           onChange={() => onToggleConsumed(e.id, e.consumed)}
-                          className="shrink-0"
+                          className="mt-0.5 shrink-0"
                           title="Marcar como consumida"
                         />
-                        <span
-                          className={`truncate ${e.consumed ? "line-through text-muted-foreground" : ""}`}
-                        >
-                          {ingredient} · {Number(e.grams).toFixed(0)}g
-                        </span>
-                        <Badge variant="outline" className="shrink-0">
-                          {Number(e.hc_total).toFixed(1)}/
-                          {Number(e.prot_total).toFixed(1)}/
-                          {Number(e.fat_total).toFixed(1)}
-                        </Badge>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p
+                            className={`break-words leading-snug ${e.consumed ? "line-through text-muted-foreground" : ""}`}
+                          >
+                            {ingredient}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
+                            <span>{Number(e.grams).toFixed(0)}g</span>
+                            <span>·</span>
+                            <span>{Number(e.hc_total).toFixed(1)} HC</span>
+                            <span>·</span>
+                            <span>{Number(e.prot_total).toFixed(1)} P</span>
+                            <span>·</span>
+                            <span>{Number(e.fat_total).toFixed(1)} G</span>
+                          </div>
+                        </div>
                       </div>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 px-2"
+                        className="h-6 shrink-0 px-2"
                         onClick={() => onRemove(e.id)}
                       >
                         ✕
@@ -727,18 +740,22 @@ function AddEntryForm({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex gap-1">
+      <div className="grid grid-cols-[1fr_5rem_2.25rem] gap-1 sm:flex">
         <Select value={productId} onValueChange={setProductId}>
-          <SelectTrigger className="h-8 text-xs flex-1">
+          <SelectTrigger className="col-span-3 min-w-0 text-xs sm:h-8 sm:flex-1">
             <SelectValue placeholder="Producto del stock…" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-w-[calc(100vw-2rem)]">
             {products.map((p) => (
-              <SelectItem key={p.product_id} value={p.product_id}>
-                {p.name}
-                {p.brand ? ` · ${p.brand}` : ""} ·{" "}
-                {p.available_grams.toFixed(0)}g disp.
-                {!p.kcal_per_100g ? " (sin kcal)" : ""}
+              <SelectItem key={p.product_id} value={p.product_id} className="items-start whitespace-normal pr-8">
+                <div className="min-w-0 space-y-0.5 py-0.5 leading-snug">
+                  <p className="break-words">{p.name}</p>
+                  <p className="break-words text-[11px] text-muted-foreground">
+                    {p.brand ? `${p.brand} · ` : ""}
+                    {p.available_grams.toFixed(0)}g disp.
+                    {!p.kcal_per_100g ? " · sin kcal" : ""}
+                  </p>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
