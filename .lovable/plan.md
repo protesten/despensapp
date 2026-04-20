@@ -1,42 +1,93 @@
 
-El usuario quiere también poder descargar en CSV/Excel el **consolidado** (una fila por producto, ya agrupado, con totales y nutrición) — lo que hoy solo existe como JSON via `exportConsolidated()`.
+## Objetivo
 
-## Plan
+Arreglar la vista móvil de la sección Dieta para que no se corten frases, productos ni controles en pantallas estrechas como la del screenshot.
 
-### 1. Añadir funciones tabulares en `src/lib/export-tabular.ts`
+## Cambios propuestos
 
-Reutilizar `exportConsolidated()` (ya devuelve `ConsolidatedProduct[]` con todo lo necesario) y aplanar a filas planas para hoja de cálculo.
+### 1. Ajustar el contenedor principal de Dieta para móvil
 
-Columnas del consolidado:
-- `producto`, `marca`, `categoría`
-- `cantidad_total`, `unidad` (canónica)
-- `cantidad_g`, `cantidad_ml`, `cantidad_unidades` (desglose desde `quantity_by_unit`)
-- `ubicaciones` (join con `, `)
-- `envases_abiertos`, `envases_cerrados`, `total_items`
-- `caducidad_proxima`, `todo_caducado` (Sí/No)
-- `base_nutricional` (100g/100ml), `kcal_por_100`, `proteinas_por_100`, `carbohidratos_por_100`, `grasas_por_100`
-- `nutricion_completa` (Sí/No), `relevancia_nutricional`, `cuenta_para_macros` (Sí/No)
-- `fuente`, `fuente_coherente` (Sí/No)
+En `src/routes/_authenticated/dieta.tsx`:
 
-Nuevas funciones:
-- `exportConsolidatedToCSV(): Promise<number>`
-- `exportConsolidatedToXLSX(): Promise<number>`
+- Reducir padding horizontal en móvil (`px-3 sm:px-4`) para ganar ancho útil.
+- Asegurar que el contenido no fuerce overflow horizontal.
+- Mantener la navegación superior consistente y desplazable horizontalmente.
 
-Reutilizar helpers existentes (`downloadBlob`, `todayStamp`, BOM UTF-8, auto-fit columnas). Nombre fichero: `despensapp-consolidado-{fecha}.{ext}`.
+### 2. Corregir las tarjetas de días y comidas
 
-### 2. UI en `despensa.exportar.tsx` (pestaña "📊 Tabla")
+En `DayPlan`:
 
-Añadir una segunda sección dentro de la pestaña Tabla con dos botones más:
-- **Descargar consolidado (Excel)**
-- **Descargar consolidado (CSV)**
+- Reducir el padding de `CardHeader` y `CardContent` en móvil.
+- Cambiar los encabezados de día/comida para que puedan partirse en varias líneas sin cortar texto.
+- Hacer que los totales de intercambios bajen a una segunda línea cuando no quepan.
+- Evitar que nombres largos como `Post-entreno/Merienda` empujen los iconos o se corten de forma fea.
 
-Mantener la sección actual (stock detallado) y separar visualmente con un subtítulo o card aparte. Toasts de éxito/error y estados de carga independientes por botón.
+### 3. Rediseñar las filas de alimentos generados en móvil
 
-### Archivos tocados
+Actualmente una fila intenta meter en una sola línea:
 
-| Archivo | Cambio |
-|---|---|
-| `src/lib/export-tabular.ts` | Añadir `buildConsolidatedRows`, `exportConsolidatedToCSV`, `exportConsolidatedToXLSX` |
-| `src/routes/_authenticated/despensa.exportar.tsx` | Añadir bloque + 2 botones en pestaña Tabla |
+```text
+checkbox + nombre largo + gramos + badge HC/P/G + botón borrar
+```
 
-Sin cambios en DB ni en `export.functions.ts` (`exportConsolidated` ya devuelve todo lo necesario).
+Eso provoca cortes. Lo cambiaré a una estructura responsive:
+
+```text
+[ ] Nombre del alimento largo
+    200g · 0.3 HC · 0.9 P · 0.1 G          [x]
+```
+
+Concretamente:
+
+- Permitir que el nombre del alimento haga wrap (`break-words`) en lugar de `truncate`.
+- Separar nombre, gramos e intercambios en líneas compactas.
+- Mantener el checkbox y el botón eliminar siempre visibles.
+- En escritorio, conservar una fila más compacta si hay espacio.
+
+### 4. Arreglar el selector de productos del stock
+
+El desplegable muestra nombres muy largos y actualmente se salen/cortan. Haré estos cambios:
+
+- En el formulario de añadir alimento (`AddEntryForm`), pasar de una fila rígida a una disposición responsive:
+  - Móvil: selector en ancho completo, gramos y botón `+` debajo.
+  - Escritorio: selector + gramos + botón en una sola línea.
+- En `SelectContent`, limitar el ancho al viewport móvil (`max-w-[calc(100vw-2rem)]`).
+- En cada `SelectItem`, permitir texto multilínea y corte de palabras largas.
+- Mostrar cada opción como:
+  ```text
+  Nombre del producto
+  Marca · 450g disp.
+  ```
+  en lugar de una frase larga de una sola línea.
+
+### 5. Mejorar pequeños textos que se cortan
+
+- Cambiar textos demasiado largos en botones móviles si hace falta:
+  - `Generar semana con IA` puede mantenerse, pero con icono y texto centrado flexible.
+  - `Semana anterior` / `Semana siguiente` se mantendrán, pero con layout que no obligue a cortar el rango de fechas.
+- Revisar la pestaña de objetivos para que los labels y campos mantengan buen ancho en móvil.
+
+## Archivos a modificar
+
+- `src/routes/_authenticated/dieta.tsx`
+  - Layout principal de Dieta
+  - `PlannerTab`
+  - `DayPlan`
+  - `AddEntryForm`
+  - Filas de alimentos generados
+  - Select items del stock
+
+No hace falta tocar base de datos ni lógica de IA para este ajuste; es un cambio de presentación responsive.
+
+## Criterios de validación
+
+Después de implementar:
+
+- En móvil de 375px:
+  - Los nombres largos de productos del desplegable no se salen de pantalla.
+  - Las filas de alimentos generados no cortan el nombre ni ocultan el botón borrar.
+  - El selector de producto, input de gramos y botón `+` caben correctamente.
+  - Los encabezados de comidas y totales no se pisan.
+  - No aparece scroll horizontal accidental.
+- En escritorio:
+  - La vista sigue siendo compacta y usable.
